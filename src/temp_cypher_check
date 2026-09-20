@@ -1,0 +1,24 @@
+from trialiq.validation.cypher_safety import (
+    validate_read_only_cypher,
+)
+
+
+queries = {
+    "semicolon_inside_string": "RETURN 'hello;world' AS value",
+    "keyword_inside_string": "RETURN 'CREATE a node' AS value",
+    "comment_with_create": "// CREATE a node\nRETURN 1 AS value",
+    "delete_query": "MATCH (n) DELETE n",
+    "merge_query": (
+        "MERGE (n:Trial {nct_id: 'NCT00000001'}) RETURN n"
+    ),
+}
+
+
+for name, query in queries.items():
+    result = validate_read_only_cypher(query)
+
+    print(
+        f"{name}: "
+        f"valid={result['valid']}, "
+        f"errors={result['errors']}"
+    )

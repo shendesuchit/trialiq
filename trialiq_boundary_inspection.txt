@@ -1,0 +1,503 @@
+
+============================================================
+FILE: .\src\trialiq\chains\intent_extraction.py
+============================================================
+
+
+# Change Start
+"""LLM-based structured intent extraction for TrialIQ."""
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from trialiq.llm.factory import create_llm
+from trialiq.services.query_intent import QueryIntent
+from typing import Optional
+
+
+
+class ExtractedQueryIntent(BaseModel):
+    """Structured output expected from the LLM."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    intent: QueryIntent = Field(
+        description="The supported query intent."
+    )
+    nct_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "The clinical trial identifier, such as NCT00000105. "
+            "Return null when no NCT identifier is present."
+        ),
+    )
+
+
+SYSTEM_PROMPT = """You are a clinical trial metadata query-intent extractor.
+
+Your task is to extract the supported query intent and NCT ID
+from the user's question.
+
+Supported intents:
+- TRIAL_OVERVIEW: Requests an overview of a specific clinical trial.
+- UNSUPPORTED: Requests information outside the supported trial overview capability.
+
+Rules:
+1. Extract the NCT identifier exactly when present.
+2. Return null for nct_id when no NCT identifier is present.
+3. Never return placeholder values such as NOT_FOUND, UNKNOWN, or NONE.
+4. Use TRIAL_OVERVIEW only when the user requests an overview of a specific trial.
+5. Use UNSUPPORTED for comparisons, efficacy assessments, cross-trial analysis, or other unsupported requests.
+6. Do not generate Cypher.
+7. Do not answer the user's clinical question.
+8. Do not infer an NCT ID that is not present.
+9. If the user requests a trial overview but does not provide an NCT ID, return TRIAL_OVERVIEW with nct_id=null. Do not classify the request as UNSUPPORTED merely because the NCT ID is missing.
+"""
+
+
+def extract_query_intent(
+    question: str,
+) -> ExtractedQueryIntent:
+    """Extract a validated structured intent from a user question."""
+
+    if not question or not question.strip():
+        raise ValueError("Question cannot be empty.")
+
+    llm = create_llm()
+    structured_llm = llm.with_structured_output(ExtractedQueryIntent)
+
+    messages = [
+        ("system", SYSTEM_PROMPT),
+        ("human", question.strip()),
+    ]
+
+    result = structured_llm.invoke(messages)
+
+    if not isinstance(result, ExtractedQueryIntent):
+        raise TypeError(
+            "LLM returned an unexpected structured-output type."
+        )
+
+    return result
+# Change End
+
+============================================================
+FILE: .\src\trialiq\services\query_intent.py
+============================================================
+
+
+# Change Start
+"""Controlled query intent contract for TrialIQ."""
+
+from enum import Enum
+
+from pydantic import BaseModel, ConfigDict, field_validator
+
+from trialiq.services.graph_query_service import query_trial_by_nct_id
+from trialiq.services.models import GraphQueryResponse
+
+class QueryIntent(str, Enum):
+    TRIAL_OVERVIEW = "TRIAL_OVERVIEW"
+    UNSUPPORTED = "UNSUPPORTED"
+
+class QueryIntentRequest(BaseModel):
+    """Validated request for a supported graph query intent."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    intent: QueryIntent
+    nct_id: str
+
+    @field_validator("nct_id")
+    @classmethod
+    def validate_nct_id(cls, value: str) -> str:
+        normalized = value.strip().upper()
+
+        if not normalized:
+            raise ValueError("NCT ID cannot be empty.")
+
+        if not normalized.startswith("NCT"):
+            raise ValueError("NCT ID must start with 'NCT'.")
+
+        if not normalized[3:].isdigit():
+            raise ValueError("NCT ID must contain digits after 'NCT'.")
+
+        return normalized
+
+
+
+# Change Start
+def dispatch_query(request: QueryIntentRequest) -> GraphQueryResponse:
+    """Route a validated intent to its approved query service."""
+
+    if request.intent == QueryIntent.TRIAL_OVERVIEW:
+        return query_trial_by_nct_id(request.nct_id)
+
+    if request.intent == QueryIntent.UNSUPPORTED:
+        raise ValueError(
+            "The requested question is outside the supported query capabilities."
+        )
+
+    raise ValueError(f"Unsupported query intent: {request.intent}")
+ 
+
+============================================================
+FILE: .\src\trialiq\services\query_orchestrator.py
+============================================================
+
+
+# Change Start
+"""Natural-language query orchestration for TrialIQ."""
+
+from trialiq.chains.intent_extraction import extract_query_intent
+from trialiq.services.models import GraphQueryResponse
+from trialiq.services.query_intent import (
+    QueryIntentRequest,
+    dispatch_query,
+)
+from trialiq.services.models import (
+    OrchestrationResponse,
+    OrchestrationStatus,
+)
+from trialiq.services.query_intent import (
+    QueryIntent,
+    QueryIntentRequest,
+    dispatch_query,
+)
+from trialiq.chains.intent_extraction import extract_query_intent
+
+
+def answer_question(question: str) -> OrchestrationResponse:
+    if not question or not question.strip():
+        return OrchestrationResponse(
+            status=OrchestrationStatus.VALIDATION_FAILED,
+            message="The question cannot be empty.",
+        )
+
+    try:
+        extracted_intent = extract_query_intent(question)
+
+        if extracted_intent.intent == QueryIntent.UNSUPPORTED:
+            return OrchestrationResponse(
+                status=OrchestrationStatus.UNSUPPORTED,
+                message=(
+                    "The requested question is outside the supported "
+                    "query capabilities."
+                ),
+                intent=extracted_intent.intent.value,
+                nct_id=extracted_intent.nct_id,
+            )
+
+        if not extracted_intent.nct_id:
+            return OrchestrationResponse(
+                status=OrchestrationStatus.MISSING_NCT_ID,
+                message=(
+                    "No NCT ID was found in the question. "
+                    "Please provide a specific clinical trial NCT ID."
+                ),
+                intent=extracted_intent.intent.value,
+            )
+
+        query_request = QueryIntentRequest(
+            intent=extracted_intent.intent,
+            nct_id=extracted_intent.nct_id,
+        )
+
+        graph_response = dispatch_query(query_request)
+
+        return OrchestrationResponse(
+            status=OrchestrationStatus.SUCCESS,
+            message="The query was processed successfully.",
+            intent=extracted_intent.intent.value,
+            nct_id=extracted_intent.nct_id,
+            graph_response=graph_response,
+        )
+
+    except ValueError as exc:
+        return OrchestrationResponse(
+            status=OrchestrationStatus.VALIDATION_FAILED,
+            message=str(exc),
+        )
+
+    except Exception:
+        return OrchestrationResponse(
+            status=OrchestrationStatus.EXECUTION_ERROR,
+            message="An unexpected error occurred while processing the query.",
+        )
+# Change End
+
+============================================================
+FILE: .\src\trialiq\services\graph_query_service.py
+============================================================
+
+
+# Change Start
+"""Read-only graph query service for TrialIQ."""
+
+from trialiq.chains.cypher_qa import get_trial_graph
+from trialiq.services.models import (
+    GraphQueryResponse,
+    GraphQueryStatus,
+    ValidationResult,
+)
+from trialiq.validation.evidence import validate_trial_evidence
+
+
+def query_trial_by_nct_id(nct_id: str) -> GraphQueryResponse:
+    """Retrieve and validate graph evidence for a clinical trial."""
+
+    try:
+        evidence = get_trial_graph(nct_id)
+
+        validation = validate_trial_evidence(
+            evidence=evidence,
+            requested_nct_id=nct_id,
+        )
+
+        validation_result = ValidationResult(**validation)
+
+        if evidence.get("found") is not True:
+            status = GraphQueryStatus.NOT_FOUND
+        elif not validation_result.valid:
+            status = GraphQueryStatus.VALIDATION_FAILED
+        else:
+            status = GraphQueryStatus.SUCCESS
+
+        return GraphQueryResponse(
+            status=status,
+            nct_id=nct_id,
+            evidence=evidence,
+            validation=validation_result,
+        )
+
+    except Exception as exc:
+        return GraphQueryResponse(
+            status=GraphQueryStatus.EXECUTION_ERROR,
+            nct_id=nct_id,
+            evidence=None,
+            validation=ValidationResult(
+                valid=False,
+                errors=[f"Graph query execution failed: {exc}"],
+                warnings=[],
+            ),
+        )
+
+
+# Change End
+
+============================================================
+FILE: .\src\trialiq\chains\cypher_qa.py
+============================================================
+
+
+# Change Start
+"""Deterministic Neo4j graph queries for TrialIQ."""
+
+from typing import Any
+
+from trialiq.graph.connection import Neo4jConnection
+
+
+RELATIONSHIP_TYPES = (
+    "HAS_CONDITION",
+    "HAS_INTERVENTION",
+    "SPONSORED_BY",
+    "HAS_FACILITY",
+    "HAS_DESIGN",
+    "HAS_ELIGIBILITY",
+)
+
+
+def _serialize_node(node: Any) -> dict | None:
+    """Convert a Neo4j node into a serializable dictionary."""
+
+    if node is None:
+        return None
+
+    return dict(node)
+
+
+def _serialize_nodes(nodes: list[Any]) -> list[dict]:
+    """Convert Neo4j nodes into serializable dictionaries."""
+
+    return [
+        serialized
+        for node in nodes
+        if (serialized := _serialize_node(node)) is not None
+    ]
+
+
+def get_trial_graph(nct_id: str) -> dict:
+    """Retrieve a Trial and its connected entities.
+
+    Relationships are currently stored in the following direction:
+
+        Entity -[RELATIONSHIP]-> Trial
+    """
+
+    query = """
+    MATCH (trial:Trial {nct_id: $nct_id})
+
+    CALL (trial) {
+        OPTIONAL MATCH (condition:Condition)-[:HAS_CONDITION]->(trial)
+        RETURN collect(condition) AS conditions
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (intervention:Intervention)-[:HAS_INTERVENTION]->(trial)
+        RETURN collect(intervention) AS interventions
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (sponsor:Sponsor)-[:SPONSORED_BY]->(trial)
+        RETURN collect(sponsor) AS sponsors
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (facility:Facility)-[:HAS_FACILITY]->(trial)
+        RETURN collect(facility) AS facilities
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (design:Design)-[:HAS_DESIGN]->(trial)
+        RETURN collect(design) AS designs
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (eligibility:Eligibility)-[:HAS_ELIGIBILITY]->(trial)
+        RETURN collect(eligibility) AS eligibilities
+    }
+
+    RETURN
+        trial,
+        conditions,
+        interventions,
+        sponsors,
+        facilities,
+        designs,
+        eligibilities
+    """
+
+    connection = Neo4jConnection()
+
+    try:
+        records = connection.execute_read(
+            query,
+            {"nct_id": nct_id},
+        )
+    finally:
+        connection.close()
+
+    if not records:
+        return {
+            "found": False,
+            "nct_id": nct_id,
+            "trial": None,
+            "conditions": [],
+            "interventions": [],
+            "sponsors": [],
+            "facilities": [],
+            "designs": [],
+            "eligibilities": [],
+        }
+
+    record = records[0]
+
+    return {
+        "found": True,
+        "nct_id": nct_id,
+        "trial": _serialize_node(record["trial"]),
+        "conditions": _serialize_nodes(record["conditions"]),
+        "interventions": _serialize_nodes(record["interventions"]),
+        "sponsors": _serialize_nodes(record["sponsors"]),
+        "facilities": _serialize_nodes(record["facilities"]),
+        "designs": _serialize_nodes(record["designs"]),
+        "eligibilities": _serialize_nodes(record["eligibilities"]),
+    }
+
+
+def count_trial_relationships(nct_id: str) -> dict:
+    """Count all entity relationships connected to a Trial."""
+
+    query = """
+    MATCH (trial:Trial {nct_id: $nct_id})
+
+    CALL (trial) {
+        OPTIONAL MATCH (condition:Condition)-[:HAS_CONDITION]->(trial)
+        RETURN count(condition) AS conditions
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (intervention:Intervention)-[:HAS_INTERVENTION]->(trial)
+        RETURN count(intervention) AS interventions
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (sponsor:Sponsor)-[:SPONSORED_BY]->(trial)
+        RETURN count(sponsor) AS sponsors
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (facility:Facility)-[:HAS_FACILITY]->(trial)
+        RETURN count(facility) AS facilities
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (design:Design)-[:HAS_DESIGN]->(trial)
+        RETURN count(design) AS designs
+    }
+
+    CALL (trial) {
+        OPTIONAL MATCH (eligibility:Eligibility)-[:HAS_ELIGIBILITY]->(trial)
+        RETURN count(eligibility) AS eligibilities
+    }
+
+    RETURN
+        conditions,
+        interventions,
+        sponsors,
+        facilities,
+        designs,
+        eligibilities
+    """
+
+    connection = Neo4jConnection()
+
+    try:
+        records = connection.execute_read(
+            query,
+            {"nct_id": nct_id},
+        )
+    finally:
+        connection.close()
+
+    if not records:
+        return {
+            "found": False,
+            "nct_id": nct_id,
+            "counts": {
+                "conditions": 0,
+                "interventions": 0,
+                "sponsors": 0,
+                "facilities": 0,
+                "designs": 0,
+                "eligibilities": 0,
+            },
+        }
+
+    record = records[0]
+
+    return {
+        "found": True,
+        "nct_id": nct_id,
+        "counts": {
+            "conditions": record["conditions"],
+            "interventions": record["interventions"],
+            "sponsors": record["sponsors"],
+            "facilities": record["facilities"],
+            "designs": record["designs"],
+            "eligibilities": record["eligibilities"],
+        },
+    }
+
+
+# Change End

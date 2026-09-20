@@ -1,0 +1,16 @@
+fastapi
+fastmcp
+langchain-core
+langchain-google-genai
+langchain-groq
+langchain-openai
+neo4j
+psycopg[binary]
+pydantic
+pydantic-settings
+python-dotenv
+uvicorn[standard]
+
+[dev]
+pytest
+pytest-cov

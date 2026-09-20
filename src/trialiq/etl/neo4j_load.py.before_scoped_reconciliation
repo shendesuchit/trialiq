@@ -1,0 +1,427 @@
+
+# Neo4j Ingestion Pipeline
+
+# Change Start
+import json
+from pathlib import Path
+from typing import Any
+
+from trialiq.graph.connection import Neo4jConnection
+
+
+APPROVED_LABELS = {
+    "Trial",
+    "Condition",
+    "Intervention",
+    "Sponsor",
+    "Facility",
+    "Design",
+    "Eligibility",
+}
+
+APPROVED_RELATIONSHIP_TYPES = {
+    "HAS_CONDITION",
+    "HAS_INTERVENTION",
+    "SPONSORED_BY",
+    "HAS_FACILITY",
+    "HAS_DESIGN",
+    "HAS_ELIGIBILITY",
+}
+
+
+def _load_transformed_artifact(
+    artifact_path: str | Path,
+) -> dict[str, Any]:
+    """Load a transformed graph artifact."""
+
+    path = Path(artifact_path)
+
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"Transformed artifact not found: {path}"
+        )
+
+    with path.open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _validate_property_value(
+    value: Any,
+    property_path: str,
+) -> None:
+    """Validate values supported by Neo4j properties."""
+
+    if value is None:
+        return
+
+    if isinstance(value, (str, int, float, bool)):
+        return
+
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            if item is None:
+                raise ValueError(
+                    f"Null list item at {property_path}[{index}]"
+                )
+
+            if isinstance(item, (list, dict)):
+                raise ValueError(
+                    "Nested lists/dictionaries are not supported "
+                    f"at {property_path}[{index}]"
+                )
+
+            _validate_property_value(
+                item,
+                f"{property_path}[{index}]",
+            )
+
+        return
+
+    raise TypeError(
+        f"Unsupported Neo4j property type at "
+        f"{property_path}: {type(value).__name__}"
+    )
+
+
+def _prepare_properties(
+    properties: dict[str, Any],
+) -> dict[str, Any]:
+    """Remove null properties and validate remaining values."""
+
+    prepared: dict[str, Any] = {}
+
+    for field, value in properties.items():
+        _validate_property_value(
+            value,
+            f"properties.{field}",
+        )
+
+        if value is not None:
+            prepared[field] = value
+
+    return prepared
+
+
+def _validate_transformed_artifact(
+    transformed: dict[str, Any],
+) -> None:
+    """Validate labels, keys, and relationship types."""
+
+    nodes = transformed.get("nodes", [])
+    relationships = transformed.get("relationships", [])
+
+    node_keys: set[str] = set()
+
+    for node in nodes:
+        key = node.get("key")
+        label = node.get("label")
+        properties = node.get("properties")
+
+        if not key:
+            raise ValueError("Node is missing key")
+
+        if label not in APPROVED_LABELS:
+            raise ValueError(
+                f"Unsupported node label: {label}"
+            )
+
+        if not isinstance(properties, dict):
+            raise TypeError(
+                f"Node properties must be a dictionary: {key}"
+            )
+
+        if key in node_keys:
+            raise ValueError(
+                f"Duplicate node key: {key}"
+            )
+
+        node_keys.add(key)
+        _prepare_properties(properties)
+
+    relationship_keys: set[tuple[str, str, str]] = set()
+
+    for relationship in relationships:
+        relationship_type = relationship.get("type")
+        source = relationship.get("source")
+        target = relationship.get("target")
+        properties = relationship.get("properties", {})
+
+        if relationship_type not in APPROVED_RELATIONSHIP_TYPES:
+            raise ValueError(
+                "Unsupported relationship type: "
+                f"{relationship_type}"
+            )
+
+        if not source or not target:
+            raise ValueError(
+                "Relationship must contain source and target"
+            )
+
+        if not isinstance(properties, dict):
+            raise TypeError(
+                "Relationship properties must be a dictionary"
+            )
+
+        relationship_key = (
+            relationship_type,
+            source,
+            target,
+        )
+
+        if relationship_key in relationship_keys:
+            raise ValueError(
+                f"Duplicate relationship: {relationship_key}"
+            )
+
+        relationship_keys.add(relationship_key)
+        _prepare_properties(properties)
+
+
+def _load_nodes(
+    connection: Neo4jConnection,
+    nodes: list[dict[str, Any]],
+) -> None:
+    """Load nodes using deterministic source keys."""
+
+    for node in nodes:
+        label = node["label"]
+        properties = _prepare_properties(node["properties"])
+
+        properties["source_key"] = node["key"]
+
+        query = f"""
+        MERGE (n:{label} {{source_key: $source_key}})
+        SET n += $properties
+        """
+
+        connection.execute_write(
+            query,
+            {
+                "source_key": node["key"],
+                "properties": properties,
+            },
+        )
+
+
+def _load_relationships(
+    connection: Neo4jConnection,
+    relationships: list[dict[str, Any]],
+) -> None:
+    """Load relationships using deterministic source keys."""
+
+    for relationship in relationships:
+        relationship_type = relationship["type"]
+        properties = _prepare_properties(
+            relationship.get("properties", {})
+        )
+
+        relationship_key = (
+            f"{relationship_type}:"
+            f"{relationship['source']}:"
+            f"{relationship['target']}"
+        )
+
+        properties["source_key"] = relationship_key
+
+        query = f"""
+        MATCH (source {{source_key: $source_key_source}})
+        MATCH (target {{source_key: $source_key_target}})
+        MERGE (source)-[r:{relationship_type} {{source_key: $relationship_key}}]->(target)
+        SET r += $properties
+        """
+
+        result = connection.execute_write(
+            query + "\nRETURN count(r) AS relationship_count",
+            {
+                "source_key_source": relationship["source"],
+                "source_key_target": relationship["target"],
+                "relationship_key": relationship_key,
+                "properties": properties,
+            },
+        )
+
+        if not result:
+            raise ValueError(
+                "Relationship query returned no result: "
+                f"{relationship['source']} -> "
+                f"{relationship['target']}"
+            )
+
+        relationship_count = result[0].get("relationship_count")
+
+        if relationship_count != 1:
+            raise ValueError(
+                "Relationship endpoints were not found or relationship "
+                "was not created exactly once: "
+                f"{relationship['source']} -> "
+                f"{relationship['target']} "
+                f"(count={relationship_count})"
+            )
+
+
+def load_transformed_artifact(
+    artifact_path: str | Path,
+) -> dict[str, Any]:
+    """Load a transformed artifact into Neo4j."""
+
+    transformed = _load_transformed_artifact(
+        artifact_path
+    )
+
+    _validate_transformed_artifact(transformed)
+
+    nodes = transformed.get("nodes", [])
+    relationships = transformed.get("relationships", [])
+
+    connection = Neo4jConnection()
+
+    try:
+        connection.verify_connectivity()
+
+        _load_nodes(
+            connection,
+            nodes,
+        )
+
+        _load_relationships(
+            connection,
+            relationships,
+        )
+
+        return {
+            "passed": True,
+            "nodes_loaded": len(nodes),
+            "relationships_loaded": len(relationships),
+        }
+
+    finally:
+        connection.close()
+# Change End
+
+
+# Change Start
+
+def reconcile_loaded_graph(transformed_artifact_path: str) -> dict:
+    """Compare transformed artifact counts with actual Neo4j counts."""
+
+    artifact = _load_transformed_artifact(transformed_artifact_path)
+
+    expected_node_counts: dict[str, int] = {}
+    expected_relationship_counts: dict[str, int] = {}
+
+    for node in artifact["nodes"]:
+        label = node["label"]
+        expected_node_counts[label] = (
+            expected_node_counts.get(label, 0) + 1
+        )
+
+    for relationship in artifact["relationships"]:
+        relationship_type = relationship["type"]
+        expected_relationship_counts[relationship_type] = (
+            expected_relationship_counts.get(relationship_type, 0) + 1
+        )
+
+    connection = Neo4jConnection()
+
+    try:
+        node_query = """
+        MATCH (n)
+        UNWIND labels(n) AS node_label
+        WITH node_label, count(n) AS node_count
+        WHERE node_label IN [
+            "Trial",
+            "Condition",
+            "Intervention",
+            "Sponsor",
+            "Facility",
+            "Design",
+            "Eligibility"
+        ]
+        RETURN node_label, node_count
+        ORDER BY node_label
+        """
+
+        relationship_query = """
+        MATCH ()-[r]->()
+        WITH type(r) AS relationship_type, count(r) AS relationship_count
+        WHERE relationship_type IN [
+            "HAS_CONDITION",
+            "HAS_INTERVENTION",
+            "SPONSORED_BY",
+            "HAS_FACILITY",
+            "HAS_DESIGN",
+            "HAS_ELIGIBILITY"
+        ]
+        RETURN relationship_type, relationship_count
+        ORDER BY relationship_type
+        """
+
+        actual_node_records = connection.execute_read(node_query)
+        actual_relationship_records = connection.execute_read(
+            relationship_query
+        )
+
+    finally:
+        connection.close()
+
+    actual_node_counts = {
+        record["node_label"]: record["node_count"]
+        for record in actual_node_records
+    }
+
+    actual_relationship_counts = {
+        record["relationship_type"]: record["relationship_count"]
+        for record in actual_relationship_records
+    }
+
+    node_mismatches = []
+    relationship_mismatches = []
+
+    for label in sorted(
+        set(expected_node_counts) | set(actual_node_counts)
+    ):
+        expected = expected_node_counts.get(label, 0)
+        actual = actual_node_counts.get(label, 0)
+
+        if expected != actual:
+            node_mismatches.append(
+                {
+                    "label": label,
+                    "expected": expected,
+                    "actual": actual,
+                }
+            )
+
+    for relationship_type in sorted(
+        set(expected_relationship_counts)
+        | set(actual_relationship_counts)
+    ):
+        expected = expected_relationship_counts.get(
+            relationship_type,
+            0,
+        )
+        actual = actual_relationship_counts.get(
+            relationship_type,
+            0,
+        )
+
+        if expected != actual:
+            relationship_mismatches.append(
+                {
+                    "relationship_type": relationship_type,
+                    "expected": expected,
+                    "actual": actual,
+                }
+            )
+
+    return {
+        "passed": not node_mismatches and not relationship_mismatches,
+        "expected_node_counts": expected_node_counts,
+        "actual_node_counts": actual_node_counts,
+        "expected_relationship_counts": expected_relationship_counts,
+        "actual_relationship_counts": actual_relationship_counts,
+        "node_mismatches": node_mismatches,
+        "relationship_mismatches": relationship_mismatches,
+    }
+
+# Change End

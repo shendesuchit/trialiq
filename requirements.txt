@@ -1,0 +1,16 @@
+
+# Core dependencies
+neo4j
+langchain
+langchain-community
+pydantic-settings
+python-dotenv
+psycopg[binary]
+pytest
+langchain-openai
+langchain-google-genai
+langchain-groq
+pypdf
+fastapi
+uvicorn[standard]
+fastmcp

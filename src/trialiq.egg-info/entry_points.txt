@@ -1,0 +1,2 @@
+[console_scripts]
+trialiq = trialiq.cli.main:main
