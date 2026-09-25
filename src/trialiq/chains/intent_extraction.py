@@ -4,7 +4,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from trialiq.llm.factory import create_llm
+from trialiq.llm.service import get_llm_service
 from trialiq.services.query_intent import QueryIntent
 from typing import Optional
 
@@ -25,115 +25,64 @@ class ExtractedQueryIntent(BaseModel):
             "Return null when no NCT identifier is present."
         ),
     )
-    condition: Optional[str] = Field(
-        default=None,
-        description=(
-            "The medical condition or disease term used to search for "
-            "clinical trials. Preserve the wording from the question. "
-            "Return null when no condition is present."
-        ),
+    condition: Optional[str] = Field(default=None, description="Condition term for condition search, otherwise null.")
+    intervention: Optional[str] = Field(default=None, description="Intervention name for intervention search, otherwise null.")
+    sponsor: Optional[str] = Field(default=None, description="Sponsor name for sponsor search, otherwise null.")
+    nct_id_b: Optional[str] = Field(default=None, description="Second NCT ID for shared-entity comparison, otherwise null.")
+    max_hops: int = Field(default=1, ge=1, le=2, description="For RELATED_TRIALS only: requested trial-to-trial hops, default 1 and never above 2.")
+    per_hop_limit: int = Field(default=10, ge=1, le=25, description="For RELATED_TRIALS only: maximum discoveries expanded per hop; default 10.")
+    relationship_types: list[str] = Field(
+        default_factory=lambda: ["HAS_CONDITION", "HAS_INTERVENTION", "SPONSORED_BY"],
+        description="For RELATED_TRIALS only: the allowlisted connection types explicitly requested.",
+    )
+    overall_statuses: list[str] = Field(
+        default_factory=list,
+        description="For RELATED_TRIALS only: explicit trial status filters, e.g. COMPLETED.",
     )
 
 
 
 SYSTEM_PROMPT = """You are a clinical trial metadata query-intent extractor.
 
-Your task is to extract the supported query intent, NCT ID, and condition term
-from the user's question.
+Return only the structured fields in the output schema. Supported intents:
+- TRIAL_OVERVIEW: overview of one specific NCT trial.
+- TRIALS_BY_CONDITION: find/list trials for a named condition.
+- TRIALS_BY_INTERVENTION: find/list trials studying a named intervention, drug, device, or procedure.
+- TRIALS_BY_SPONSOR: find/list trials associated with a named sponsor or organization.
+- SHARED_ENTITIES_BETWEEN_TRIALS: compare exactly two NCT trials for shared conditions, interventions, or sponsors.
+- RELATED_TRIALS: find trials connected to one explicit NCT trial through shared condition, intervention, or sponsor metadata, within one or two hops.
+- UNSUPPORTED: requests outside these metadata capabilities.
 
-Supported intents:
-
-- TRIAL_OVERVIEW:
-  Requests an overview or metadata summary of one specific clinical trial
-  identified by an NCT ID.
-
-- TRIALS_BY_CONDITION:
-  Requests a list or discovery of clinical trials associated with a named
-  medical condition, disease, disorder, or health topic.
-
-- UNSUPPORTED:
-  Requests information outside the supported metadata capabilities.
-
-Important classification rules:
-
-1. Classify requests to FIND, SEARCH, LIST, SHOW, or DISCOVER clinical trials
-   for a named condition as TRIALS_BY_CONDITION.
-
-2. The following examples MUST be classified as TRIALS_BY_CONDITION:
-
-   User: "Find clinical trials for Cancer"
-   Output intent: TRIALS_BY_CONDITION
-   Output condition: "Cancer"
-
-   User: "Show me trials studying diabetes"
-   Output intent: TRIALS_BY_CONDITION
-   Output condition: "diabetes"
-
-   User: "Search for clinical trials related to obesity"
-   Output intent: TRIALS_BY_CONDITION
-   Output condition: "obesity"
-
-   User: "List studies for breast cancer"
-   Output intent: TRIALS_BY_CONDITION
-   Output condition: "breast cancer"
-
-3. For TRIALS_BY_CONDITION:
-   - Extract the condition phrase from the user's question.
-   - Preserve the user's wording.
-   - Do not invent synonyms.
-   - Do not apply clinical normalization.
-   - Do not broaden or narrow the condition.
-   - Set nct_id to null unless an NCT ID is explicitly present.
-   - Set condition to null only when no condition can be extracted.
-
-4. For TRIAL_OVERVIEW:
-   - Extract the NCT identifier exactly when present.
-   - Return null for nct_id when no NCT identifier is present.
-   - Do not infer an NCT ID.
-   - Use this intent only for a specific trial overview request.
-
-5. Use UNSUPPORTED for:
-   - Efficacy assessments.
-   - Treatment recommendations.
-   - Clinical advice.
-   - Comparisons between trials.
-   - Cross-trial analysis.
-   - Outcome interpretation.
-   - Requests outside the supported metadata capabilities.
-
-6. Never return placeholder values such as:
-   NOT_FOUND, UNKNOWN, NONE, or N/A.
-
-7. Do not generate Cypher.
-
-8. Do not answer the user's clinical question.
-
-9. Return only the structured fields defined by the output schema.
+Extraction rules:
+1. Preserve condition, intervention, and sponsor wording from the question; do not invent synonyms or normalize clinically.
+2. For TRIAL_OVERVIEW set nct_id to the explicit NCT ID.
+3. For SHARED_ENTITIES_BETWEEN_TRIALS set nct_id and nct_id_b to the two explicit NCT IDs in question order.
+4. For RELATED_TRIALS set nct_id to the explicit seed trial. Set max_hops to 2 only when the user explicitly requests two hops; otherwise use 1.
+5. For RELATED_TRIALS, relationship_types may contain only HAS_CONDITION, HAS_INTERVENTION, SPONSORED_BY. Include only explicitly requested relationship types; if the question does not restrict them, include all three.
+6. For RELATED_TRIALS, put explicit overall-status filters in overall_statuses using uppercase source values such as COMPLETED. Otherwise return an empty list.
+7. Set unused entity fields to null. Never invent identifiers or placeholder values.
+8. RELATED_TRIALS may also request explanation of the connection plus deterministic comparison of returned trial metadata such as study dates, completion timing, duration, status, or enrollment. Keep the intent as RELATED_TRIALS; downstream deterministic logic owns those comparisons.
+9. Use UNSUPPORTED for efficacy assessments, treatment recommendations, clinical advice, outcome interpretation, or other requests that require unsupported clinical inference.
+10. Do not generate Cypher and do not answer the user's question.
 """
+
+
+def extract_query_intent_with_metadata(question: str):
+    """Extract structured intent and return the normalized invocation metadata."""
+    if not question or not question.strip():
+        raise ValueError("Question cannot be empty.")
+
+    messages = [
+        ("system", SYSTEM_PROMPT),
+        ("human", question.strip()),
+    ]
+    return get_llm_service().invoke_structured(messages, ExtractedQueryIntent)
 
 
 def extract_query_intent(
     question: str,
 ) -> ExtractedQueryIntent:
     """Extract a validated structured intent from a user question."""
-
-    if not question or not question.strip():
-        raise ValueError("Question cannot be empty.")
-
-    llm = create_llm()
-    structured_llm = llm.with_structured_output(ExtractedQueryIntent)
-
-    messages = [
-        ("system", SYSTEM_PROMPT),
-        ("human", question.strip()),
-    ]
-
-    result = structured_llm.invoke(messages)
-
-    if not isinstance(result, ExtractedQueryIntent):
-        raise TypeError(
-            "LLM returned an unexpected structured-output type."
-        )
-
+    result, _metadata = extract_query_intent_with_metadata(question)
     return result
 # Change End

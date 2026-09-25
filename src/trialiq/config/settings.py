@@ -58,13 +58,33 @@ class Settings(BaseSettings):
         # Change Start
     # LLM Configuration
     llm_provider: Literal[
-        "openrouter",
-        "gemini",
-        "groq",
+        "auto",
         "openai",
+        "gemini",
+        "openrouter",
     ] = Field(
-        default="openrouter",
+        default="auto",
         validation_alias="LLM_PROVIDER",
+    )
+    llm_provider_priority: str = Field(
+        default="openai,gemini,openrouter",
+        validation_alias="LLM_PROVIDER_PRIORITY",
+    )
+    llm_startup_probe: bool = Field(
+        default=True,
+        validation_alias="LLM_STARTUP_PROBE",
+    )
+    llm_request_timeout_seconds: float = Field(
+        default=20.0,
+        gt=0,
+        le=60,
+        validation_alias="LLM_REQUEST_TIMEOUT_SECONDS",
+    )
+    llm_max_retries: int = Field(
+        default=0,
+        ge=0,
+        le=2,
+        validation_alias="LLM_MAX_RETRIES",
     )
 
     # OpenRouter
@@ -76,8 +96,8 @@ class Settings(BaseSettings):
         default="https://openrouter.ai/api/v1",
         validation_alias="OPENROUTER_BASE_URL",
     )
-    openrouter_model: str = Field(
-        default="nvidia/nemotron-3-ultra-550b-a55b:free",
+    openrouter_model: str | None = Field(
+        default=None,
         validation_alias="OPENROUTER_MODEL",
     )
 
@@ -89,16 +109,6 @@ class Settings(BaseSettings):
     gemini_model: str | None = Field(
         default=None,
         validation_alias="GEMINI_MODEL",
-    )
-
-    # Groq
-    groq_api_key: str | None = Field(
-        default=None,
-        validation_alias="GROQ_API_KEY",
-    )
-    groq_model: str | None = Field(
-        default=None,
-        validation_alias="GROQ_MODEL",
     )
 
     # OpenAI
@@ -128,3 +138,18 @@ def get_cors_origins(settings: Settings | None = None) -> list[str]:
         for origin in resolved_settings.cors_origins.split(",")
         if origin.strip()
     ]
+
+
+def get_llm_provider_priority(settings: Settings | None = None) -> list[str]:
+    """Return validated, de-duplicated provider priority in configured order."""
+    resolved_settings = settings or get_settings()
+    allowed = {"openai", "gemini", "openrouter"}
+    providers: list[str] = []
+    for raw in resolved_settings.llm_provider_priority.split(","):
+        provider = raw.strip().lower()
+        if provider in allowed and provider not in providers:
+            providers.append(provider)
+    for provider in ("openai", "gemini", "openrouter"):
+        if provider not in providers:
+            providers.append(provider)
+    return providers

@@ -1,78 +1,88 @@
+﻿# ============================================================
+# TrialIQ repository exclusions
+# ============================================================
 
-# =========================
-# Python
-# =========================
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.pytest_cache/
-.pytest_tmp/
-.pytest-tmp/
-.test-tmp/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-.mypy_cache/
-.ruff_cache/
+# Secrets / local environment
+.env
+.env.*
+!.env.example
 
-# Virtual environments
+# Python virtual environments
 .venv/
 venv/
 env/
 ENV/
 
-# =========================
-# Environment and secrets
-# =========================
-.env
-.env.*
-!.env.example
+# Python generated artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
 
-# =========================
-# Data and generated outputs
-# =========================
-data/
-artifacts/
-
-# Generated inspection and combined snapshots
-combined_files
-combined_files_*
-*_inspection_bundle
-*_inspection_bundle.*
-*_test_summary
-*_test_details
-
-# =========================
-# Frontend
-# =========================
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-frontend/.env
-frontend/.env.*
-
-# =========================
-# Build outputs
-# =========================
-dist/
+# Python/package builds
 build/
+dist/
+site/
 
-# =========================
-# Logs and temporary files
-# =========================
+# Node / Vite / TypeScript
+node_modules/
+frontend/node_modules/
+.vite/
+frontend/.vite/
+frontend/dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Logs
+logs/
 *.log
-*.tmp
-*.temp
+*.pid
 
-# =========================
-# Operating system and IDE
-# =========================
+# Temporary patch / merge files
+*.patch
+*.rej
+*.orig
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+
+# OS
 .DS_Store
 Thumbs.db
-.vscode/
-.idea/
-*.swp
-*.swo
+desktop.ini
+
+# Temporary/cache
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Local database storage
+neo4j-data/
+neo4j-logs/
+postgres-data/
+
+# Large source/database archives
+*.dump
+*.backup
+*.tar.gz
+*.zip
+
+# Pytest temporary working files
+.pytest-tmp/
+
+# Generated inspection/concatenation bundles
+combined_files*.txt
+*inspection_bundle*.txt

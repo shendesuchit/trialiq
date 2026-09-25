@@ -62,10 +62,17 @@ def _successful_graph_response(
 
 
 def test_valid_nct_id_returns_grounded_answer() -> None:
-    with patch(
-        "trialiq.services.answer_service.query_trial_by_nct_id",
-        return_value=_successful_graph_response(),
-    ) as mock_query:
+    with (
+        patch(
+            "trialiq.services.answer_service.query_trial_by_nct_id",
+            return_value=_successful_graph_response(),
+        ) as mock_query,
+        patch("trialiq.services.answer_service.get_configured_llm"),
+        patch(
+            "trialiq.services.answer_service.generate_trial_overview_answer",
+            return_value="Grounded test answer.",
+        ),
+    ):
         result = answer_trial_overview_by_nct_id(VALID_NCT_ID)
 
     mock_query.assert_called_once_with(VALID_NCT_ID)
@@ -76,10 +83,17 @@ def test_valid_nct_id_returns_grounded_answer() -> None:
 
 
 def test_lowercase_nct_id_is_normalized() -> None:
-    with patch(
-        "trialiq.services.answer_service.query_trial_by_nct_id",
-        return_value=_successful_graph_response(),
-    ) as mock_query:
+    with (
+        patch(
+            "trialiq.services.answer_service.query_trial_by_nct_id",
+            return_value=_successful_graph_response(),
+        ) as mock_query,
+        patch("trialiq.services.answer_service.get_configured_llm"),
+        patch(
+            "trialiq.services.answer_service.generate_trial_overview_answer",
+            return_value="Grounded test answer.",
+        ),
+    ):
         result = answer_trial_overview_by_nct_id(VALID_NCT_ID.lower())
 
     mock_query.assert_called_once_with(VALID_NCT_ID)

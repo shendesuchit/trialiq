@@ -1,97 +1,40 @@
+"""Backward-compatible LangChain model factory.
+
+New application code should use :mod:`trialiq.llm.service`. This module remains
+for narrow compatibility with existing injected-model tests and callers.
+"""
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_groq import ChatGroq
-from langchain_openai import ChatOpenAI
 
 from trialiq.config.settings import get_settings
+from trialiq.llm.providers import LangChainProviderAdapter, create_provider_adapter
 
 
-# Change Start
 def _require_value(value: str | None, setting_name: str) -> str:
-    """Return a required configuration value or raise a safe error."""
     if not value or not value.strip():
-        raise ValueError(
-            f"Required LLM configuration is missing: {setting_name}"
-        )
+        raise ValueError(f"Required LLM configuration is missing: {setting_name}")
     return value
 
 
 def create_llm() -> BaseChatModel:
-    """Create the configured LangChain chat model.
-
-    Provider selection is explicit through LLM_PROVIDER.
-    """
-
     settings = get_settings()
     provider = settings.llm_provider
+    if provider == "auto":
+        raise ValueError(
+            "create_llm() requires an explicit provider; use LLMService for auto selection."
+        )
+    if provider not in {"openai", "gemini", "openrouter"}:
+        raise ValueError(f"Unsupported LLM provider configured: {provider}")
 
-    if provider == "openrouter":
-        api_key = _require_value(
-            settings.openrouter_api_key,
-            "OPENROUTER_API_KEY",
-        )
-        model = _require_value(
-            settings.openrouter_model,
-            "OPENROUTER_MODEL",
-        )
-
-        return ChatOpenAI(
-            model=model,
-            api_key=api_key,
-            base_url=settings.openrouter_base_url,
-            temperature=0,
-        )
-
-    if provider == "openai":
-        api_key = _require_value(
-            settings.openai_api_key,
-            "OPENAI_API_KEY",
-        )
-        model = _require_value(
-            settings.openai_model,
-            "OPENAI_MODEL",
-        )
-
-        return ChatOpenAI(
-            model=model,
-            api_key=api_key,
-            temperature=0,
-        )
-
-    if provider == "gemini":
-        api_key = _require_value(
-            settings.gemini_api_key,
-            "GEMINI_API_KEY",
-        )
-        model = _require_value(
-            settings.gemini_model,
-            "GEMINI_MODEL",
-        )
-
-        return ChatGoogleGenerativeAI(
-            model=model,
-            google_api_key=api_key,
-            temperature=0,
-        )
-
-    if provider == "groq":
-        api_key = _require_value(
-            settings.groq_api_key,
-            "GROQ_API_KEY",
-        )
-        model = _require_value(
-            settings.groq_model,
-            "GROQ_MODEL",
-        )
-
-        return ChatGroq(
-            model=model,
-            api_key=api_key,
-            temperature=0,
-        )
-
-    raise ValueError(
-        f"Unsupported LLM provider configured: {provider}"
+    _require_value(
+        getattr(settings, f"{provider}_api_key", None),
+        f"{provider.upper()}_API_KEY",
     )
-# Change End
+    _require_value(
+        getattr(settings, f"{provider}_model", None),
+        f"{provider.upper()}_MODEL",
+    )
+    adapter = create_provider_adapter(settings, provider)
+    if not isinstance(adapter, LangChainProviderAdapter):
+        raise TypeError("Configured provider did not create a LangChain adapter.")
+    return adapter.client

@@ -1,0 +1,86 @@
+{
+  "batch": 14,
+  "mode": "runtime_smoke",
+  "passed": true,
+  "checks": [
+    {
+      "name": "catalog_anchor",
+      "passed": true,
+      "detail": {
+        "total_count": 1,
+        "related_trial_count": 3,
+        "related_trial_count_capped": false
+      }
+    },
+    {
+      "name": "canonical_condition_search",
+      "passed": true,
+      "detail": {
+        "status": "SUCCESS",
+        "nct_ids": [
+          "NCT03416088",
+          "NCT04214743"
+        ]
+      }
+    },
+    {
+      "name": "canonical_intervention_search",
+      "passed": true,
+      "detail": {
+        "status": "SUCCESS",
+        "nct_ids": [
+          "NCT03416088",
+          "NCT04731987"
+        ]
+      }
+    },
+    {
+      "name": "canonical_sponsor_search",
+      "passed": true,
+      "detail": {
+        "status": "SUCCESS",
+        "nct_ids": [
+          "NCT03416088",
+          "NCT07764198"
+        ]
+      }
+    },
+    {
+      "name": "canonical_shared_entity_comparison",
+      "passed": true,
+      "detail": {
+        "status": "SUCCESS",
+        "shared_entities": [
+          {
+            "entity_type": "condition",
+            "normalized_name": "retinal microcirculation disorder"
+          }
+        ]
+      }
+    },
+    {
+      "name": "hub_aware_related_traversal",
+      "passed": true,
+      "detail": {
+        "status": "SUCCESS",
+        "returned": 3,
+        "nct_ids": [
+          "NCT04214743",
+          "NCT04731987",
+          "NCT07764198"
+        ]
+      }
+    }
+  ],
+  "bounds": {
+    "catalog_related_trial_count_cap": 200,
+    "related_trial_limit_checked": 10
+  },
+  "constraints_preserved": {
+    "mcp_graph_transport": true,
+    "no_runtime_direct_fallback_added": true,
+    "fixed_allowlisted_cypher": true,
+    "llm_orchestration_modified": false,
+    "frontend_layout_modified": false
+  }
+}

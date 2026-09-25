@@ -1,0 +1,1511 @@
+{
+  "generated_at_utc": "2026-09-25T06:59:36.098966+00:00",
+  "mode": "source_and_graph",
+  "read_only": true,
+  "source": {
+    "connection": {
+      "host": "localhost",
+      "port": 5432,
+      "database": "aact_full",
+      "schema": "ctgov"
+    },
+    "tables": {
+      "studies": {
+        "row_count": 602891,
+        "distinct_trials": 602891,
+        "columns": [
+          {
+            "column_name": "nct_id",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "nlm_download_date_description",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "study_first_submitted_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "results_first_submitted_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "disposition_first_submitted_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "last_update_submitted_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "study_first_submitted_qc_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "study_first_posted_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "study_first_posted_date_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "results_first_submitted_qc_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "results_first_posted_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "results_first_posted_date_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "disposition_first_submitted_qc_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "disposition_first_posted_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "disposition_first_posted_date_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "last_update_submitted_qc_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "last_update_posted_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "last_update_posted_date_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "start_month_year",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "start_date_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "start_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "verification_month_year",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "verification_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "completion_month_year",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "completion_date_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "completion_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "primary_completion_month_year",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "primary_completion_date_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "primary_completion_date",
+            "data_type": "date",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "target_duration",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "study_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "acronym",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "baseline_population",
+            "data_type": "text",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "brief_title",
+            "data_type": "text",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "official_title",
+            "data_type": "text",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "overall_status",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "last_known_status",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "phase",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "enrollment",
+            "data_type": "integer",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "enrollment_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "source",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "limitations_and_caveats",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "number_of_arms",
+            "data_type": "integer",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "number_of_groups",
+            "data_type": "integer",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "why_stopped",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "has_expanded_access",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "expanded_access_type_individual",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "expanded_access_type_intermediate",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "expanded_access_type_treatment",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "has_dmc",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "is_fda_regulated_drug",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "is_fda_regulated_device",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "is_unapproved_device",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "is_ppsd",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "is_us_export",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "biospec_retention",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "biospec_description",
+            "data_type": "text",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "ipd_time_frame",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "ipd_access_criteria",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "ipd_url",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "plan_to_share_ipd",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "plan_to_share_ipd_description",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "created_at",
+            "data_type": "timestamp without time zone",
+            "is_nullable": "NO"
+          },
+          {
+            "column_name": "updated_at",
+            "data_type": "timestamp without time zone",
+            "is_nullable": "NO"
+          },
+          {
+            "column_name": "source_class",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "delayed_posting",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "expanded_access_nctid",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "expanded_access_status_for_nctid",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "fdaaa801_violation",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "baseline_type_units_analyzed",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "patient_registry",
+            "data_type": "boolean",
+            "is_nullable": "YES"
+          }
+        ]
+      },
+      "conditions": {
+        "row_count": 1083806,
+        "distinct_trials": 601870,
+        "columns": [
+          {
+            "column_name": "id",
+            "data_type": "integer",
+            "is_nullable": "NO"
+          },
+          {
+            "column_name": "nct_id",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "name",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "downcase_name",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          }
+        ]
+      },
+      "interventions": {
+        "row_count": 1019768,
+        "distinct_trials": 541802,
+        "columns": [
+          {
+            "column_name": "id",
+            "data_type": "integer",
+            "is_nullable": "NO"
+          },
+          {
+            "column_name": "nct_id",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "intervention_type",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "name",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "description",
+            "data_type": "text",
+            "is_nullable": "YES"
+          }
+        ]
+      },
+      "sponsors": {
+        "row_count": 961155,
+        "distinct_trials": 602891,
+        "columns": [
+          {
+            "column_name": "id",
+            "data_type": "integer",
+            "is_nullable": "NO"
+          },
+          {
+            "column_name": "nct_id",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "agency_class",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "lead_or_collaborator",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          },
+          {
+            "column_name": "name",
+            "data_type": "character varying",
+            "is_nullable": "YES"
+          }
+        ]
+      }
+    },
+    "study_profile": {
+      "trial_count": 602891,
+      "field_completeness": {
+        "brief_title": {
+          "non_null": 602891,
+          "percent": 100.0
+        },
+        "official_title": {
+          "non_null": 592909,
+          "percent": 98.34
+        },
+        "overall_status": {
+          "non_null": 602891,
+          "percent": 100.0
+        },
+        "phase": {
+          "non_null": 459995,
+          "percent": 76.3
+        },
+        "study_type": {
+          "non_null": 601908,
+          "percent": 99.84
+        },
+        "start_date": {
+          "non_null": 597530,
+          "percent": 99.11
+        },
+        "completion_date": {
+          "non_null": 586203,
+          "percent": 97.23
+        },
+        "enrollment": {
+          "non_null": 595757,
+          "percent": 98.82
+        }
+      },
+      "overall_status_distribution": [
+        {
+          "value": "COMPLETED",
+          "trial_count": 329302
+        },
+        {
+          "value": "UNKNOWN",
+          "trial_count": 97063
+        },
+        {
+          "value": "RECRUITING",
+          "trial_count": 64718
+        },
+        {
+          "value": "TERMINATED",
+          "trial_count": 34322
+        },
+        {
+          "value": "NOT_YET_RECRUITING",
+          "trial_count": 29631
+        },
+        {
+          "value": "ACTIVE_NOT_RECRUITING",
+          "trial_count": 22033
+        },
+        {
+          "value": "WITHDRAWN",
+          "trial_count": 16760
+        },
+        {
+          "value": "ENROLLING_BY_INVITATION",
+          "trial_count": 5246
+        },
+        {
+          "value": "SUSPENDED",
+          "trial_count": 1766
+        },
+        {
+          "value": "WITHHELD",
+          "trial_count": 983
+        },
+        {
+          "value": "NO_LONGER_AVAILABLE",
+          "trial_count": 533
+        },
+        {
+          "value": "AVAILABLE",
+          "trial_count": 255
+        },
+        {
+          "value": "APPROVED_FOR_MARKETING",
+          "trial_count": 241
+        },
+        {
+          "value": "TEMPORARILY_NOT_AVAILABLE",
+          "trial_count": 38
+        }
+      ],
+      "phase_distribution": [
+        {
+          "value": "NA",
+          "trial_count": 236638
+        },
+        {
+          "value": null,
+          "trial_count": 142896
+        },
+        {
+          "value": "PHASE2",
+          "trial_count": 65517
+        },
+        {
+          "value": "PHASE1",
+          "trial_count": 48647
+        },
+        {
+          "value": "PHASE3",
+          "trial_count": 42256
+        },
+        {
+          "value": "PHASE4",
+          "trial_count": 35797
+        },
+        {
+          "value": "PHASE1/PHASE2",
+          "trial_count": 17070
+        },
+        {
+          "value": "PHASE2/PHASE3",
+          "trial_count": 7595
+        },
+        {
+          "value": "EARLY_PHASE1",
+          "trial_count": 6475
+        }
+      ],
+      "study_type_distribution": [
+        {
+          "value": "INTERVENTIONAL",
+          "trial_count": 460120
+        },
+        {
+          "value": "OBSERVATIONAL",
+          "trial_count": 140721
+        },
+        {
+          "value": "EXPANDED_ACCESS",
+          "trial_count": 1067
+        },
+        {
+          "value": null,
+          "trial_count": 983
+        }
+      ]
+    },
+    "entity_profiles": {
+      "conditions": {
+        "label": "Condition",
+        "relationship": "HAS_CONDITION",
+        "row_count": 1083806,
+        "distinct_trials": 601870,
+        "blank_name_rows": 0,
+        "canonical_candidate_stats": {
+          "distinct_canonical_keys": 131245,
+          "shared_keys": 56136,
+          "max_trial_fanout": 11098,
+          "p50_trial_fanout": 1,
+          "p90_trial_fanout": 10,
+          "p95_trial_fanout": 22,
+          "p99_trial_fanout": 105
+        },
+        "top_shared_candidates": [
+          {
+            "canonical_key": "healthy",
+            "example_name": "Healthy",
+            "source_rows": 11098,
+            "trial_count": 11098,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "breast cancer",
+            "example_name": "Breast Cancer",
+            "source_rows": 8893,
+            "trial_count": 8893,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "obesity",
+            "example_name": "Obesity",
+            "source_rows": 7585,
+            "trial_count": 7585,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "stroke",
+            "example_name": "Stroke",
+            "source_rows": 5400,
+            "trial_count": 5400,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "hypertension",
+            "example_name": "Hypertension",
+            "source_rows": 4665,
+            "trial_count": 4665,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "pain",
+            "example_name": "Pain",
+            "source_rows": 4564,
+            "trial_count": 4564,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "depression",
+            "example_name": "Depression",
+            "source_rows": 4557,
+            "trial_count": 4557,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "prostate cancer",
+            "example_name": "Prostate Cancer",
+            "source_rows": 4488,
+            "trial_count": 4488,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "cancer",
+            "example_name": "Cancer",
+            "source_rows": 4017,
+            "trial_count": 4017,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "hiv infections",
+            "example_name": "Hiv Infections",
+            "source_rows": 3879,
+            "trial_count": 3879,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "heart failure",
+            "example_name": "Heart Failure",
+            "source_rows": 3785,
+            "trial_count": 3785,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "coronary artery disease",
+            "example_name": "Coronary Artery Disease",
+            "source_rows": 3758,
+            "trial_count": 3758,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "asthma",
+            "example_name": "Asthma",
+            "source_rows": 3665,
+            "trial_count": 3665,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "colorectal cancer",
+            "example_name": "Colorectal Cancer",
+            "source_rows": 3506,
+            "trial_count": 3506,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "anxiety",
+            "example_name": "Anxiety",
+            "source_rows": 3390,
+            "trial_count": 3390,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "diabetes mellitus, type 2",
+            "example_name": "Diabetes Mellitus, Type 2",
+            "source_rows": 3314,
+            "trial_count": 3314,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "covid-19",
+            "example_name": "Covid-19",
+            "source_rows": 3187,
+            "trial_count": 3187,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "lung cancer",
+            "example_name": "Lung Cancer",
+            "source_rows": 3114,
+            "trial_count": 3114,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "cardiovascular diseases",
+            "example_name": "Cardiovascular Diseases",
+            "source_rows": 3044,
+            "trial_count": 3044,
+            "display_variant_count": 2
+          },
+          {
+            "canonical_key": "diabetes",
+            "example_name": "Diabetes",
+            "source_rows": 3030,
+            "trial_count": 3030,
+            "display_variant_count": 3
+          }
+        ],
+        "per_trial_degree": {
+          "avg_rows": 1.8,
+          "p50_rows": 1,
+          "p95_rows": 4,
+          "max_rows": 343
+        }
+      },
+      "interventions": {
+        "label": "Intervention",
+        "relationship": "HAS_INTERVENTION",
+        "row_count": 1019768,
+        "distinct_trials": 541802,
+        "blank_name_rows": 178,
+        "canonical_candidate_stats": {
+          "distinct_canonical_keys": 526899,
+          "shared_keys": 72954,
+          "max_trial_fanout": 28950,
+          "p50_trial_fanout": 1,
+          "p90_trial_fanout": 2,
+          "p95_trial_fanout": 3,
+          "p99_trial_fanout": 12
+        },
+        "top_shared_candidates": [
+          {
+            "canonical_key": "placebo|drug",
+            "example_name": "placebo",
+            "source_rows": 29633,
+            "trial_count": 28950,
+            "display_variant_count": 4
+          },
+          {
+            "canonical_key": "placebo|other",
+            "example_name": "placebo",
+            "source_rows": 7652,
+            "trial_count": 7588,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "placebo|dietary_supplement",
+            "example_name": "placebo",
+            "source_rows": 3268,
+            "trial_count": 3259,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "laboratory biomarker analysis|other",
+            "example_name": "laboratory biomarker analysis",
+            "source_rows": 3115,
+            "trial_count": 3115,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "cyclophosphamide|drug",
+            "example_name": "cyclophosphamide",
+            "source_rows": 3006,
+            "trial_count": 2977,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "no intervention|other",
+            "example_name": "no intervention",
+            "source_rows": 2469,
+            "trial_count": 2457,
+            "display_variant_count": 7
+          },
+          {
+            "canonical_key": "cisplatin|drug",
+            "example_name": "cisplatin",
+            "source_rows": 2392,
+            "trial_count": 2352,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "carboplatin|drug",
+            "example_name": "carboplatin",
+            "source_rows": 2361,
+            "trial_count": 2329,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "paclitaxel|drug",
+            "example_name": "paclitaxel",
+            "source_rows": 2191,
+            "trial_count": 2159,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "dexamethasone|drug",
+            "example_name": "dexamethasone",
+            "source_rows": 2164,
+            "trial_count": 2113,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "questionnaire administration|other",
+            "example_name": "questionnaire administration",
+            "source_rows": 1669,
+            "trial_count": 1660,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "docetaxel|drug",
+            "example_name": "docetaxel",
+            "source_rows": 1644,
+            "trial_count": 1612,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "radiation therapy|radiation",
+            "example_name": "radiation therapy",
+            "source_rows": 1557,
+            "trial_count": 1536,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "gemcitabine|drug",
+            "example_name": "gemcitabine",
+            "source_rows": 1513,
+            "trial_count": 1483,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "placebo|biological",
+            "example_name": "placebo",
+            "source_rows": 1469,
+            "trial_count": 1431,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "pembrolizumab|drug",
+            "example_name": "pembrolizumab",
+            "source_rows": 1335,
+            "trial_count": 1324,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "bevacizumab|drug",
+            "example_name": "bevacizumab",
+            "source_rows": 1349,
+            "trial_count": 1318,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "biospecimen collection|procedure",
+            "example_name": "biospecimen collection",
+            "source_rows": 1320,
+            "trial_count": 1305,
+            "display_variant_count": 3
+          },
+          {
+            "canonical_key": "metformin|drug",
+            "example_name": "metformin",
+            "source_rows": 1332,
+            "trial_count": 1304,
+            "display_variant_count": 4
+          },
+          {
+            "canonical_key": "capecitabine|drug",
+            "example_name": "capecitabine",
+            "source_rows": 1313,
+            "trial_count": 1276,
+            "display_variant_count": 3
+          }
+        ],
+        "per_trial_degree": {
+          "avg_rows": 1.88,
+          "p50_rows": 2,
+          "p95_rows": 4,
+          "max_rows": 97
+        }
+      },
+      "sponsors": {
+        "label": "Sponsor",
+        "relationship": "SPONSORED_BY",
+        "row_count": 961155,
+        "distinct_trials": 602891,
+        "blank_name_rows": 0,
+        "canonical_candidate_stats": {
+          "distinct_canonical_keys": 102617,
+          "shared_keys": 38995,
+          "max_trial_fanout": 14387,
+          "p50_trial_fanout": 1,
+          "p90_trial_fanout": 8,
+          "p95_trial_fanout": 20,
+          "p99_trial_fanout": 140
+        },
+        "top_shared_candidates": [
+          {
+            "canonical_key": "national cancer institute (nci)",
+            "example_name": "National Cancer Institute (NCI)",
+            "source_rows": 14387,
+            "trial_count": 14387,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "cairo university",
+            "example_name": "Cairo University",
+            "source_rows": 5075,
+            "trial_count": 5075,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "glaxosmithkline",
+            "example_name": "GlaxoSmithKline",
+            "source_rows": 4934,
+            "trial_count": 4934,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "assiut university",
+            "example_name": "Assiut University",
+            "source_rows": 4929,
+            "trial_count": 4929,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "pfizer",
+            "example_name": "Pfizer",
+            "source_rows": 4888,
+            "trial_count": 4888,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "astrazeneca",
+            "example_name": "AstraZeneca",
+            "source_rows": 4802,
+            "trial_count": 4802,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "merck sharp & dohme llc",
+            "example_name": "Merck Sharp & Dohme LLC",
+            "source_rows": 4247,
+            "trial_count": 4247,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "national heart, lung, and blood institute (nhlbi)",
+            "example_name": "National Heart, Lung, and Blood Institute (NHLBI)",
+            "source_rows": 4230,
+            "trial_count": 4230,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "mayo clinic",
+            "example_name": "Mayo Clinic",
+            "source_rows": 3712,
+            "trial_count": 3712,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "assistance publique - hôpitaux de paris",
+            "example_name": "Assistance Publique - Hôpitaux de Paris",
+            "source_rows": 3711,
+            "trial_count": 3711,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "national institute of allergy and infectious diseases (niaid)",
+            "example_name": "National Institute of Allergy and Infectious Diseases (NIAID)",
+            "source_rows": 3484,
+            "trial_count": 3484,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "national institute of mental health (nimh)",
+            "example_name": "National Institute of Mental Health (NIMH)",
+            "source_rows": 3313,
+            "trial_count": 3313,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "m.d. anderson cancer center",
+            "example_name": "M.D. Anderson Cancer Center",
+            "source_rows": 3293,
+            "trial_count": 3293,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "massachusetts general hospital",
+            "example_name": "Massachusetts General Hospital",
+            "source_rows": 3291,
+            "trial_count": 3291,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "novartis pharmaceuticals",
+            "example_name": "Novartis Pharmaceuticals",
+            "source_rows": 3178,
+            "trial_count": 3178,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "national institutes of health (nih)",
+            "example_name": "National Institutes of Health (NIH)",
+            "source_rows": 2953,
+            "trial_count": 2953,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "national institute on drug abuse (nida)",
+            "example_name": "National Institute on Drug Abuse (NIDA)",
+            "source_rows": 2931,
+            "trial_count": 2931,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "eli lilly and company",
+            "example_name": "Eli Lilly and Company",
+            "source_rows": 2877,
+            "trial_count": 2877,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "bristol-myers squibb",
+            "example_name": "Bristol-Myers Squibb",
+            "source_rows": 2869,
+            "trial_count": 2869,
+            "display_variant_count": 1
+          },
+          {
+            "canonical_key": "university of california, san francisco",
+            "example_name": "University of California, San Francisco",
+            "source_rows": 2839,
+            "trial_count": 2839,
+            "display_variant_count": 1
+          }
+        ],
+        "per_trial_degree": {
+          "avg_rows": 1.59,
+          "p50_rows": 1,
+          "p95_rows": 4,
+          "max_rows": 180
+        }
+      }
+    },
+    "estimated_canonical_graph": {
+      "trial_nodes": 602891,
+      "entity_nodes": {
+        "conditions": 131245,
+        "interventions": 526899,
+        "sponsors": 102617
+      },
+      "source_relationship_rows": {
+        "conditions": 1083806,
+        "interventions": 1019768,
+        "sponsors": 961155
+      },
+      "note": "Entity node estimates use source-backed candidate canonical keys. Relationship counts are raw source rows and may be reduced only if a later design explicitly deduplicates multiple source rows for the same canonical entity/trial pair."
+    }
+  },
+  "graph": {
+    "connection": {
+      "uri": "bolt://localhost:7687",
+      "database": "neo4j",
+      "username": "neo4j"
+    },
+    "label_counts": {
+      "ok": true,
+      "records": [
+        {
+          "label": "Facility",
+          "node_count": 487
+        },
+        {
+          "label": "Sponsor",
+          "node_count": 179
+        },
+        {
+          "label": "Condition",
+          "node_count": 152
+        },
+        {
+          "label": "Intervention",
+          "node_count": 139
+        },
+        {
+          "label": "Trial",
+          "node_count": 104
+        },
+        {
+          "label": "Eligibility",
+          "node_count": 100
+        },
+        {
+          "label": "Design",
+          "node_count": 98
+        }
+      ]
+    },
+    "relationship_counts": {
+      "ok": true,
+      "records": [
+        {
+          "relationship_type": "HAS_FACILITY",
+          "relationship_count": 487
+        },
+        {
+          "relationship_type": "SPONSORED_BY",
+          "relationship_count": 180
+        },
+        {
+          "relationship_type": "HAS_CONDITION",
+          "relationship_count": 153
+        },
+        {
+          "relationship_type": "HAS_INTERVENTION",
+          "relationship_count": 140
+        },
+        {
+          "relationship_type": "HAS_ELIGIBILITY",
+          "relationship_count": 100
+        },
+        {
+          "relationship_type": "HAS_DESIGN",
+          "relationship_count": 98
+        }
+      ]
+    },
+    "trial_profile": {
+      "ok": true,
+      "records": [
+        {
+          "trial_count": 104,
+          "brief_title_non_null": 104,
+          "overall_status_non_null": 104,
+          "start_date_non_null": 86,
+          "completion_date_non_null": 59,
+          "enrollment_non_null": 45,
+          "source_key_non_null": 100
+        }
+      ]
+    },
+    "constraints": {
+      "ok": true,
+      "records": [
+        {
+          "name": "trial_nct_id_unique",
+          "type": "NODE_PROPERTY_UNIQUENESS",
+          "labelsOrTypes": [
+            "Trial"
+          ],
+          "properties": [
+            "nct_id"
+          ]
+        }
+      ]
+    },
+    "indexes": {
+      "ok": true,
+      "records": [
+        {
+          "name": "condition_name_index",
+          "type": "RANGE",
+          "entityType": "NODE",
+          "labelsOrTypes": [
+            "Condition"
+          ],
+          "properties": [
+            "name"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "name": "facility_country_index",
+          "type": "RANGE",
+          "entityType": "NODE",
+          "labelsOrTypes": [
+            "Facility"
+          ],
+          "properties": [
+            "country"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "name": "index_1b9dcc97",
+          "type": "LOOKUP",
+          "entityType": "RELATIONSHIP",
+          "labelsOrTypes": null,
+          "properties": null,
+          "state": "ONLINE"
+        },
+        {
+          "name": "index_460996c0",
+          "type": "LOOKUP",
+          "entityType": "NODE",
+          "labelsOrTypes": null,
+          "properties": null,
+          "state": "ONLINE"
+        },
+        {
+          "name": "intervention_name_index",
+          "type": "RANGE",
+          "entityType": "NODE",
+          "labelsOrTypes": [
+            "Intervention"
+          ],
+          "properties": [
+            "name"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "name": "investigator_name_index",
+          "type": "RANGE",
+          "entityType": "NODE",
+          "labelsOrTypes": [
+            "Investigator"
+          ],
+          "properties": [
+            "name"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "name": "sponsor_name_index",
+          "type": "RANGE",
+          "entityType": "NODE",
+          "labelsOrTypes": [
+            "Sponsor"
+          ],
+          "properties": [
+            "name"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "name": "trial_nct_id_unique",
+          "type": "RANGE",
+          "entityType": "NODE",
+          "labelsOrTypes": [
+            "Trial"
+          ],
+          "properties": [
+            "nct_id"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "name": "trial_phase_index",
+          "type": "RANGE",
+          "entityType": "NODE",
+          "labelsOrTypes": [
+            "Trial"
+          ],
+          "properties": [
+            "phase"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "name": "trial_status_index",
+          "type": "RANGE",
+          "entityType": "NODE",
+          "labelsOrTypes": [
+            "Trial"
+          ],
+          "properties": [
+            "overall_status"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "name": "trial_study_type_index",
+          "type": "RANGE",
+          "entityType": "NODE",
+          "labelsOrTypes": [
+            "Trial"
+          ],
+          "properties": [
+            "study_type"
+          ],
+          "state": "ONLINE"
+        }
+      ]
+    },
+    "entity_profiles": {
+      "conditions": {
+        "summary": {
+          "ok": true,
+          "records": [
+            {
+              "entity_nodes": 152,
+              "canonical_nodes": 1,
+              "canonical_key_nodes": 1,
+              "source_key_nodes": 151,
+              "truly_shared_nodes": 1,
+              "max_trial_fanout": 2
+            }
+          ]
+        },
+        "top_shared_nodes": {
+          "ok": true,
+          "records": [
+            {
+              "canonical_key": "retinal microcirculation disorder",
+              "normalized_name": "retinal microcirculation disorder",
+              "name": "Retinal Microcirculation Disorder",
+              "canonical": true,
+              "trial_count": 2
+            }
+          ]
+        }
+      },
+      "interventions": {
+        "summary": {
+          "ok": true,
+          "records": [
+            {
+              "entity_nodes": 139,
+              "canonical_nodes": 1,
+              "canonical_key_nodes": 1,
+              "source_key_nodes": 138,
+              "truly_shared_nodes": 1,
+              "max_trial_fanout": 2
+            }
+          ]
+        },
+        "top_shared_nodes": {
+          "ok": true,
+          "records": [
+            {
+              "canonical_key": "beverage consumption|behavioral",
+              "normalized_name": "beverage consumption",
+              "name": "Beverage consumption",
+              "canonical": true,
+              "trial_count": 2
+            }
+          ]
+        }
+      },
+      "sponsors": {
+        "summary": {
+          "ok": true,
+          "records": [
+            {
+              "entity_nodes": 179,
+              "canonical_nodes": 1,
+              "canonical_key_nodes": 1,
+              "source_key_nodes": 178,
+              "truly_shared_nodes": 1,
+              "max_trial_fanout": 2
+            }
+          ]
+        },
+        "top_shared_nodes": {
+          "ok": true,
+          "records": [
+            {
+              "canonical_key": "jiannan huang",
+              "normalized_name": "jiannan huang",
+              "name": "Jiannan Huang",
+              "canonical": true,
+              "trial_count": 2
+            }
+          ]
+        }
+      }
+    },
+    "demo_slice": {
+      "ok": true,
+      "records": [
+        {
+          "demo_slice": "NCT03416088",
+          "entity_labels": [
+            "Condition"
+          ],
+          "entity_name": "Retinal Microcirculation Disorder",
+          "canonical_key": "retinal microcirculation disorder",
+          "relationship_type": "HAS_CONDITION",
+          "nct_id": "NCT03416088",
+          "source_table": "conditions",
+          "source_id": 416354331
+        },
+        {
+          "demo_slice": "NCT03416088",
+          "entity_labels": [
+            "Condition"
+          ],
+          "entity_name": "Retinal Microcirculation Disorder",
+          "canonical_key": "retinal microcirculation disorder",
+          "relationship_type": "HAS_CONDITION",
+          "nct_id": "NCT04214743",
+          "source_table": "conditions",
+          "source_id": 415887852
+        },
+        {
+          "demo_slice": "NCT03416088",
+          "entity_labels": [
+            "Intervention"
+          ],
+          "entity_name": "Beverage consumption",
+          "canonical_key": "beverage consumption|behavioral",
+          "relationship_type": "HAS_INTERVENTION",
+          "nct_id": "NCT03416088",
+          "source_table": "interventions",
+          "source_id": 398765905
+        },
+        {
+          "demo_slice": "NCT03416088",
+          "entity_labels": [
+            "Intervention"
+          ],
+          "entity_name": "Beverage consumption",
+          "canonical_key": "beverage consumption|behavioral",
+          "relationship_type": "HAS_INTERVENTION",
+          "nct_id": "NCT04731987",
+          "source_table": "interventions",
+          "source_id": 398647881
+        },
+        {
+          "demo_slice": "NCT03416088",
+          "entity_labels": [
+            "Sponsor"
+          ],
+          "entity_name": "Jiannan Huang",
+          "canonical_key": "jiannan huang",
+          "relationship_type": "SPONSORED_BY",
+          "nct_id": "NCT03416088",
+          "source_table": "sponsors",
+          "source_id": 387728835
+        },
+        {
+          "demo_slice": "NCT03416088",
+          "entity_labels": [
+            "Sponsor"
+          ],
+          "entity_name": "Jiannan Huang",
+          "canonical_key": "jiannan huang",
+          "relationship_type": "SPONSORED_BY",
+          "nct_id": "NCT07764198",
+          "source_table": "sponsors",
+          "source_id": 387741929
+        }
+      ]
+    }
+  },
+  "errors": []
+}
