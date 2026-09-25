@@ -1,23 +1,26 @@
-# Change Start: Add answer composition service
+"""Application services for evidence-grounded TrialIQ answers."""
 
-from trialiq.services.answer_formatter import format_trial_overview, format_condition_search
-from trialiq.services.query_orchestrator import answer_question
-from trialiq.services.graph_query_service import query_trial_by_nct_id, query_trials_by_condition
+from trialiq.services.answer_formatter import (
+    format_condition_search,
+    format_trial_overview,
+)
+from trialiq.llm.integration import get_configured_llm  # legacy test patch target
+from trialiq.services.answer_generation import generate_trial_overview_answer
+from trialiq.services.graph_query_service import (
+    query_trial_by_nct_id,
+    query_trials_by_condition,
+)
 from trialiq.services.models import (
     AnswerStatus,
     EvidenceGroundedAnswer,
     GraphQueryStatus,
     OrchestrationStatus,
 )
-from trialiq.services.query_intent import (
-    QueryIntent,
-    QueryIntentRequest,
-)
+from trialiq.services.query_intent import QueryIntent, QueryIntentRequest
+from trialiq.services.query_orchestrator import answer_question
 
 
-def _map_orchestration_status(
-    status: OrchestrationStatus,
-) -> AnswerStatus:
+def _map_orchestration_status(status: OrchestrationStatus) -> AnswerStatus:
     status_mapping = {
         OrchestrationStatus.NOT_FOUND: AnswerStatus.NOT_FOUND,
         OrchestrationStatus.UNSUPPORTED: AnswerStatus.UNSUPPORTED,
@@ -25,14 +28,43 @@ def _map_orchestration_status(
         OrchestrationStatus.VALIDATION_FAILED: AnswerStatus.VALIDATION_FAILED,
         OrchestrationStatus.EXECUTION_ERROR: AnswerStatus.EXECUTION_ERROR,
     }
+    return status_mapping.get(status, AnswerStatus.VALIDATION_FAILED)
 
-    return status_mapping.get(
-        status,
-        AnswerStatus.VALIDATION_FAILED,
+
+def _generate_from_validated_graph(
+    question: str,
+    graph_response,
+) -> EvidenceGroundedAnswer:
+    """Generate the final answer only after deterministic evidence validation."""
+    validation_result = format_trial_overview(
+        graph_response=graph_response,
+        question=question,
     )
+
+    if validation_result.status != AnswerStatus.GROUNDED:
+        return validation_result
+
+    try:
+        generated_answer = generate_trial_overview_answer(
+            question=question,
+            graph_response=graph_response,
+        )
+    except Exception:
+        limitations = list(
+            dict.fromkeys(
+                [
+                    *validation_result.limitations,
+                    "Narrative synthesis is unavailable; deterministic validated evidence output is shown.",
+                ]
+            )
+        )
+        return validation_result.model_copy(update={"limitations": limitations})
+
+    return validation_result.model_copy(update={"answer": generated_answer})
 
 
 def answer_trial_overview(question: str) -> EvidenceGroundedAnswer:
+    """Answer a natural-language trial overview request."""
     orchestration_response = answer_question(question)
 
     if orchestration_response.status != OrchestrationStatus.SUCCESS:
@@ -45,9 +77,6 @@ def answer_trial_overview(question: str) -> EvidenceGroundedAnswer:
             ],
         }
 
-        # Preserve structured evidence payloads even for NOT_FOUND,
-        # VALIDATION_FAILED, and execution-error responses. This allows
-        # clients to distinguish an empty result from missing response data.
         if orchestration_response.condition_search_response is not None:
             answer_kwargs["condition_search_response"] = (
                 orchestration_response.condition_search_response
@@ -73,24 +102,14 @@ def answer_trial_overview(question: str) -> EvidenceGroundedAnswer:
             ],
         )
 
-    return format_trial_overview(
-        graph_response=orchestration_response.graph_response,
+    return _generate_from_validated_graph(
         question=question,
+        graph_response=orchestration_response.graph_response,
     )
 
-# Change Start: Add deterministic NCT-based answer service
 
-
-
-# Change Start: Add deterministic NCT-based answer service
-
-# Change Start: Validate deterministic MCP NCT input
-
-def answer_trial_overview_by_nct_id(
-    nct_id: str,
-) -> EvidenceGroundedAnswer:
-    """Return a validated trial overview using a specific NCT ID."""
-
+def answer_trial_overview_by_nct_id(nct_id: str) -> EvidenceGroundedAnswer:
+    """Return a validated, LLM-generated trial overview for an NCT ID."""
     question = f"Give me an overview of {nct_id}"
 
     try:
@@ -103,21 +122,20 @@ def answer_trial_overview_by_nct_id(
             status=AnswerStatus.VALIDATION_FAILED,
             question=question,
             answer="The supplied NCT ID is invalid.",
-            limitations=["The supplied NCT ID failed validation."],
+            limitations=[str(exc)],
         )
 
     normalized_nct_id = validated_request.nct_id
+    question = f"Give me an overview of {normalized_nct_id}"
 
     try:
         graph_response = query_trial_by_nct_id(normalized_nct_id)
-    except Exception:
+    except Exception as exc:
         return EvidenceGroundedAnswer(
             status=AnswerStatus.EXECUTION_ERROR,
-            question=f"Give me an overview of {normalized_nct_id}",
+            question=question,
             answer="The trial evidence could not be retrieved.",
-            limitations=[
-                "An unexpected error occurred while retrieving graph evidence."
-            ],
+            limitations=[f"Graph retrieval failed: {exc}"],
         )
 
     if graph_response.status == GraphQueryStatus.NOT_FOUND:
@@ -125,7 +143,7 @@ def answer_trial_overview_by_nct_id(
             status=AnswerStatus.NOT_FOUND,
             question=question,
             answer="The requested clinical trial was not found.",
-            graph_response=graph_response.model_dump(),
+            graph_response=graph_response,
             limitations=[
                 "No graph evidence was found for the requested NCT ID."
             ],
@@ -136,7 +154,7 @@ def answer_trial_overview_by_nct_id(
             status=AnswerStatus.VALIDATION_FAILED,
             question=question,
             answer="The trial evidence failed validation.",
-            graph_response=graph_response.model_dump(),
+            graph_response=graph_response,
             limitations=graph_response.validation.errors,
         )
 
@@ -145,27 +163,25 @@ def answer_trial_overview_by_nct_id(
             status=AnswerStatus.EXECUTION_ERROR,
             question=question,
             answer="The trial evidence could not be retrieved.",
-            graph_response=graph_response.model_dump(),
+            graph_response=graph_response,
             limitations=graph_response.validation.errors,
         )
 
     if graph_response.status == GraphQueryStatus.SUCCESS:
-        return format_trial_overview(
+        return _generate_from_validated_graph(
+            question=question,
             graph_response=graph_response,
-            question=f"Give me an overview of {normalized_nct_id}",
         )
 
     return EvidenceGroundedAnswer(
         status=AnswerStatus.VALIDATION_FAILED,
         question=question,
         answer="The graph query returned an unrecognized status.",
-        graph_response=graph_response.model_dump(),
+        graph_response=graph_response,
         limitations=[
             f"Unexpected graph query status: {graph_response.status}"
         ],
     )
-
-# Change End
 
 
 def answer_trials_by_condition(
@@ -173,15 +189,17 @@ def answer_trials_by_condition(
     question: str | None = None,
     limit: int = 20,
 ) -> EvidenceGroundedAnswer:
+    """Return formatted condition-based trial search results."""
     resolved_question = question or f"Find clinical trials for {condition}"
+
     try:
         search_response = query_trials_by_condition(condition, limit)
-    except Exception:
+    except Exception as exc:
         return EvidenceGroundedAnswer(
             status=AnswerStatus.EXECUTION_ERROR,
             question=resolved_question,
             answer="The condition-based trial search could not be completed.",
-            limitations=["An unexpected error occurred during condition search."],
+            limitations=[f"Condition search failed: {exc}"],
         )
 
     if search_response.status.value == "VALIDATION_FAILED":

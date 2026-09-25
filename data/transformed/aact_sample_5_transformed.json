@@ -1,0 +1,1272 @@
+{
+  "metadata": {
+    "source_database": "aact_full",
+    "source_schema": "ctgov",
+    "scope_limit": 5,
+    "nct_ids": [
+      "NCT00000102",
+      "NCT00000104",
+      "NCT00000105",
+      "NCT00000106",
+      "NCT00000107"
+    ]
+  },
+  "nodes": [
+    {
+      "key": "trial:NCT00000102",
+      "label": "Trial",
+      "properties": {
+        "nct_id": "NCT00000102",
+        "nlm_download_date_description": null,
+        "study_first_submitted_date": "1999-11-03",
+        "results_first_submitted_date": null,
+        "disposition_first_submitted_date": null,
+        "last_update_submitted_date": "2005-06-23",
+        "study_first_submitted_qc_date": "1999-11-03",
+        "study_first_posted_date": "1999-11-04",
+        "study_first_posted_date_type": "ESTIMATED",
+        "results_first_submitted_qc_date": null,
+        "results_first_posted_date": null,
+        "results_first_posted_date_type": null,
+        "disposition_first_submitted_qc_date": null,
+        "disposition_first_posted_date": null,
+        "disposition_first_posted_date_type": null,
+        "last_update_submitted_qc_date": "2005-06-23",
+        "last_update_posted_date": "2005-06-24",
+        "last_update_posted_date_type": "ESTIMATED",
+        "start_month_year": null,
+        "start_date_type": null,
+        "start_date": null,
+        "verification_month_year": "2004-01",
+        "verification_date": "2004-01-31",
+        "completion_month_year": null,
+        "completion_date_type": null,
+        "completion_date": null,
+        "primary_completion_month_year": null,
+        "primary_completion_date_type": null,
+        "primary_completion_date": null,
+        "target_duration": null,
+        "study_type": "INTERVENTIONAL",
+        "acronym": null,
+        "baseline_population": null,
+        "brief_title": "Congenital Adrenal Hyperplasia: Calcium Channels as Therapeutic Targets",
+        "official_title": null,
+        "overall_status": "COMPLETED",
+        "last_known_status": null,
+        "phase": "PHASE1/PHASE2",
+        "enrollment": null,
+        "enrollment_type": null,
+        "source": "National Center for Research Resources (NCRR)",
+        "limitations_and_caveats": null,
+        "number_of_arms": null,
+        "number_of_groups": null,
+        "why_stopped": null,
+        "has_expanded_access": false,
+        "expanded_access_type_individual": null,
+        "expanded_access_type_intermediate": null,
+        "expanded_access_type_treatment": null,
+        "has_dmc": null,
+        "is_fda_regulated_drug": null,
+        "is_fda_regulated_device": null,
+        "is_unapproved_device": null,
+        "is_ppsd": null,
+        "is_us_export": null,
+        "biospec_retention": null,
+        "biospec_description": null,
+        "ipd_time_frame": null,
+        "ipd_access_criteria": null,
+        "ipd_url": null,
+        "plan_to_share_ipd": null,
+        "plan_to_share_ipd_description": null,
+        "created_at": "2026-09-15 19:52:46.602626",
+        "updated_at": "2026-09-15 19:52:46.602626",
+        "source_class": "NIH",
+        "delayed_posting": null,
+        "expanded_access_nctid": null,
+        "expanded_access_status_for_nctid": null,
+        "fdaaa801_violation": null,
+        "baseline_type_units_analyzed": null,
+        "patient_registry": null
+      }
+    },
+    {
+      "key": "trial:NCT00000104",
+      "label": "Trial",
+      "properties": {
+        "nct_id": "NCT00000104",
+        "nlm_download_date_description": null,
+        "study_first_submitted_date": "1999-11-03",
+        "results_first_submitted_date": null,
+        "disposition_first_submitted_date": null,
+        "last_update_submitted_date": "2005-06-23",
+        "study_first_submitted_qc_date": "1999-11-03",
+        "study_first_posted_date": "1999-11-04",
+        "study_first_posted_date_type": "ESTIMATED",
+        "results_first_submitted_qc_date": null,
+        "results_first_posted_date": null,
+        "results_first_posted_date_type": null,
+        "disposition_first_submitted_qc_date": null,
+        "disposition_first_posted_date": null,
+        "disposition_first_posted_date_type": null,
+        "last_update_submitted_qc_date": "2005-06-23",
+        "last_update_posted_date": "2005-06-24",
+        "last_update_posted_date_type": "ESTIMATED",
+        "start_month_year": null,
+        "start_date_type": null,
+        "start_date": null,
+        "verification_month_year": "2003-12",
+        "verification_date": "2003-12-31",
+        "completion_month_year": null,
+        "completion_date_type": null,
+        "completion_date": null,
+        "primary_completion_month_year": null,
+        "primary_completion_date_type": null,
+        "primary_completion_date": null,
+        "target_duration": null,
+        "study_type": "OBSERVATIONAL",
+        "acronym": null,
+        "baseline_population": null,
+        "brief_title": "Does Lead Burden Alter Neuropsychological Development?",
+        "official_title": null,
+        "overall_status": "COMPLETED",
+        "last_known_status": null,
+        "phase": null,
+        "enrollment": null,
+        "enrollment_type": null,
+        "source": "National Center for Research Resources (NCRR)",
+        "limitations_and_caveats": null,
+        "number_of_arms": null,
+        "number_of_groups": null,
+        "why_stopped": null,
+        "has_expanded_access": false,
+        "expanded_access_type_individual": null,
+        "expanded_access_type_intermediate": null,
+        "expanded_access_type_treatment": null,
+        "has_dmc": null,
+        "is_fda_regulated_drug": null,
+        "is_fda_regulated_device": null,
+        "is_unapproved_device": null,
+        "is_ppsd": null,
+        "is_us_export": null,
+        "biospec_retention": null,
+        "biospec_description": null,
+        "ipd_time_frame": null,
+        "ipd_access_criteria": null,
+        "ipd_url": null,
+        "plan_to_share_ipd": null,
+        "plan_to_share_ipd_description": null,
+        "created_at": "2026-09-14 07:16:48.974262",
+        "updated_at": "2026-09-14 07:16:48.974262",
+        "source_class": "NIH",
+        "delayed_posting": null,
+        "expanded_access_nctid": null,
+        "expanded_access_status_for_nctid": null,
+        "fdaaa801_violation": null,
+        "baseline_type_units_analyzed": null,
+        "patient_registry": null
+      }
+    },
+    {
+      "key": "trial:NCT00000105",
+      "label": "Trial",
+      "properties": {
+        "nct_id": "NCT00000105",
+        "nlm_download_date_description": null,
+        "study_first_submitted_date": "1999-11-03",
+        "results_first_submitted_date": null,
+        "disposition_first_submitted_date": null,
+        "last_update_submitted_date": "2017-11-27",
+        "study_first_submitted_qc_date": "1999-11-03",
+        "study_first_posted_date": "1999-11-04",
+        "study_first_posted_date_type": "ESTIMATED",
+        "results_first_submitted_qc_date": null,
+        "results_first_posted_date": null,
+        "results_first_posted_date_type": null,
+        "disposition_first_submitted_qc_date": null,
+        "disposition_first_posted_date": null,
+        "disposition_first_posted_date_type": null,
+        "last_update_submitted_qc_date": "2017-11-27",
+        "last_update_posted_date": "2017-11-29",
+        "last_update_posted_date_type": "ACTUAL",
+        "start_month_year": "2002-07",
+        "start_date_type": null,
+        "start_date": "2002-07-31",
+        "verification_month_year": "2017-11",
+        "verification_date": "2017-11-30",
+        "completion_month_year": "2012-03",
+        "completion_date_type": "ACTUAL",
+        "completion_date": "2012-03-31",
+        "primary_completion_month_year": "2012-03",
+        "primary_completion_date_type": "ACTUAL",
+        "primary_completion_date": "2012-03-31",
+        "target_duration": null,
+        "study_type": "OBSERVATIONAL",
+        "acronym": null,
+        "baseline_population": null,
+        "brief_title": "Vaccination With Tetanus and KLH to Assess Immune Responses.",
+        "official_title": "Vaccination With Tetanus Toxoid and Keyhole Limpet Hemocyanin (KLH) to Assess Antigen-Specific Immune Responses",
+        "overall_status": "TERMINATED",
+        "last_known_status": null,
+        "phase": null,
+        "enrollment": 112,
+        "enrollment_type": "ACTUAL",
+        "source": "Masonic Cancer Center, University of Minnesota",
+        "limitations_and_caveats": null,
+        "number_of_arms": null,
+        "number_of_groups": 3,
+        "why_stopped": "Replaced by another study.",
+        "has_expanded_access": false,
+        "expanded_access_type_individual": null,
+        "expanded_access_type_intermediate": null,
+        "expanded_access_type_treatment": null,
+        "has_dmc": true,
+        "is_fda_regulated_drug": null,
+        "is_fda_regulated_device": null,
+        "is_unapproved_device": null,
+        "is_ppsd": null,
+        "is_us_export": null,
+        "biospec_retention": "SAMPLES_WITH_DNA",
+        "biospec_description": "analysis of blood samples before and 4 weeks postvaccination",
+        "ipd_time_frame": null,
+        "ipd_access_criteria": null,
+        "ipd_url": null,
+        "plan_to_share_ipd": null,
+        "plan_to_share_ipd_description": null,
+        "created_at": "2026-09-15 16:42:30.779445",
+        "updated_at": "2026-09-15 16:42:30.779445",
+        "source_class": "OTHER",
+        "delayed_posting": null,
+        "expanded_access_nctid": null,
+        "expanded_access_status_for_nctid": null,
+        "fdaaa801_violation": null,
+        "baseline_type_units_analyzed": null,
+        "patient_registry": null
+      }
+    },
+    {
+      "key": "trial:NCT00000106",
+      "label": "Trial",
+      "properties": {
+        "nct_id": "NCT00000106",
+        "nlm_download_date_description": null,
+        "study_first_submitted_date": "2000-01-18",
+        "results_first_submitted_date": null,
+        "disposition_first_submitted_date": null,
+        "last_update_submitted_date": "2005-06-23",
+        "study_first_submitted_qc_date": "2000-01-18",
+        "study_first_posted_date": "2000-01-19",
+        "study_first_posted_date_type": "ESTIMATED",
+        "results_first_submitted_qc_date": null,
+        "results_first_posted_date": null,
+        "results_first_posted_date_type": null,
+        "disposition_first_submitted_qc_date": null,
+        "disposition_first_posted_date": null,
+        "disposition_first_posted_date_type": null,
+        "last_update_submitted_qc_date": "2005-06-23",
+        "last_update_posted_date": "2005-06-24",
+        "last_update_posted_date_type": "ESTIMATED",
+        "start_month_year": null,
+        "start_date_type": null,
+        "start_date": null,
+        "verification_month_year": "2000-11",
+        "verification_date": "2000-11-30",
+        "completion_month_year": null,
+        "completion_date_type": null,
+        "completion_date": null,
+        "primary_completion_month_year": null,
+        "primary_completion_date_type": null,
+        "primary_completion_date": null,
+        "target_duration": null,
+        "study_type": "INTERVENTIONAL",
+        "acronym": null,
+        "baseline_population": null,
+        "brief_title": "41.8 Degree Centigrade Whole Body Hyperthermia for the Treatment of Rheumatoid Diseases",
+        "official_title": null,
+        "overall_status": "UNKNOWN",
+        "last_known_status": "ACTIVE_NOT_RECRUITING",
+        "phase": "NA",
+        "enrollment": null,
+        "enrollment_type": null,
+        "source": "National Center for Research Resources (NCRR)",
+        "limitations_and_caveats": null,
+        "number_of_arms": null,
+        "number_of_groups": null,
+        "why_stopped": null,
+        "has_expanded_access": false,
+        "expanded_access_type_individual": null,
+        "expanded_access_type_intermediate": null,
+        "expanded_access_type_treatment": null,
+        "has_dmc": null,
+        "is_fda_regulated_drug": null,
+        "is_fda_regulated_device": null,
+        "is_unapproved_device": null,
+        "is_ppsd": null,
+        "is_us_export": null,
+        "biospec_retention": null,
+        "biospec_description": null,
+        "ipd_time_frame": null,
+        "ipd_access_criteria": null,
+        "ipd_url": null,
+        "plan_to_share_ipd": null,
+        "plan_to_share_ipd_description": null,
+        "created_at": "2026-09-16 00:03:41.395475",
+        "updated_at": "2026-09-16 00:03:41.395475",
+        "source_class": "NIH",
+        "delayed_posting": null,
+        "expanded_access_nctid": null,
+        "expanded_access_status_for_nctid": null,
+        "fdaaa801_violation": null,
+        "baseline_type_units_analyzed": null,
+        "patient_registry": null
+      }
+    },
+    {
+      "key": "trial:NCT00000107",
+      "label": "Trial",
+      "properties": {
+        "nct_id": "NCT00000107",
+        "nlm_download_date_description": null,
+        "study_first_submitted_date": "2000-01-18",
+        "results_first_submitted_date": null,
+        "disposition_first_submitted_date": null,
+        "last_update_submitted_date": "2005-06-23",
+        "study_first_submitted_qc_date": "2000-01-18",
+        "study_first_posted_date": "2000-01-19",
+        "study_first_posted_date_type": "ESTIMATED",
+        "results_first_submitted_qc_date": null,
+        "results_first_posted_date": null,
+        "results_first_posted_date_type": null,
+        "disposition_first_submitted_qc_date": null,
+        "disposition_first_posted_date": null,
+        "disposition_first_posted_date_type": null,
+        "last_update_submitted_qc_date": "2005-06-23",
+        "last_update_posted_date": "2005-06-24",
+        "last_update_posted_date_type": "ESTIMATED",
+        "start_month_year": null,
+        "start_date_type": null,
+        "start_date": null,
+        "verification_month_year": "2003-12",
+        "verification_date": "2003-12-31",
+        "completion_month_year": null,
+        "completion_date_type": null,
+        "completion_date": null,
+        "primary_completion_month_year": null,
+        "primary_completion_date_type": null,
+        "primary_completion_date": null,
+        "target_duration": null,
+        "study_type": "OBSERVATIONAL",
+        "acronym": null,
+        "baseline_population": null,
+        "brief_title": "Body Water Content in Cyanotic Congenital Heart Disease",
+        "official_title": null,
+        "overall_status": "COMPLETED",
+        "last_known_status": null,
+        "phase": null,
+        "enrollment": null,
+        "enrollment_type": null,
+        "source": "National Center for Research Resources (NCRR)",
+        "limitations_and_caveats": null,
+        "number_of_arms": null,
+        "number_of_groups": null,
+        "why_stopped": null,
+        "has_expanded_access": false,
+        "expanded_access_type_individual": null,
+        "expanded_access_type_intermediate": null,
+        "expanded_access_type_treatment": null,
+        "has_dmc": null,
+        "is_fda_regulated_drug": null,
+        "is_fda_regulated_device": null,
+        "is_unapproved_device": null,
+        "is_ppsd": null,
+        "is_us_export": null,
+        "biospec_retention": null,
+        "biospec_description": null,
+        "ipd_time_frame": null,
+        "ipd_access_criteria": null,
+        "ipd_url": null,
+        "plan_to_share_ipd": null,
+        "plan_to_share_ipd_description": null,
+        "created_at": "2026-09-15 19:10:30.623068",
+        "updated_at": "2026-09-15 19:10:30.623068",
+        "source_class": "NIH",
+        "delayed_posting": null,
+        "expanded_access_nctid": null,
+        "expanded_access_status_for_nctid": null,
+        "fdaaa801_violation": null,
+        "baseline_type_units_analyzed": null,
+        "patient_registry": null
+      }
+    },
+    {
+      "key": "conditions:NCT00000102:416231805",
+      "label": "Condition",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 416231805,
+        "nct_id": "NCT00000102",
+        "id": 416231805,
+        "name": "Congenital Adrenal Hyperplasia",
+        "downcase_name": "congenital adrenal hyperplasia"
+      }
+    },
+    {
+      "key": "conditions:NCT00000104:415393801",
+      "label": "Condition",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 415393801,
+        "nct_id": "NCT00000104",
+        "id": 415393801,
+        "name": "Lead Poisoning",
+        "downcase_name": "lead poisoning"
+      }
+    },
+    {
+      "key": "conditions:NCT00000105:416151978",
+      "label": "Condition",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 416151978,
+        "nct_id": "NCT00000105",
+        "id": 416151978,
+        "name": "Cancer",
+        "downcase_name": "cancer"
+      }
+    },
+    {
+      "key": "conditions:NCT00000106:416335237",
+      "label": "Condition",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 416335237,
+        "nct_id": "NCT00000106",
+        "id": 416335237,
+        "name": "Rheumatic Diseases",
+        "downcase_name": "rheumatic diseases"
+      }
+    },
+    {
+      "key": "conditions:NCT00000107:416214468",
+      "label": "Condition",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 416214468,
+        "nct_id": "NCT00000107",
+        "id": 416214468,
+        "name": "Heart Defects, Congenital",
+        "downcase_name": "heart defects, congenital"
+      }
+    },
+    {
+      "key": "interventions:NCT00000102:398649660",
+      "label": "Intervention",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398649660,
+        "nct_id": "NCT00000102",
+        "id": 398649660,
+        "intervention_type": "DRUG",
+        "name": "Nifedipine",
+        "description": null
+      }
+    },
+    {
+      "key": "interventions:NCT00000104:397858168",
+      "label": "Intervention",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 397858168,
+        "nct_id": "NCT00000104",
+        "id": 397858168,
+        "intervention_type": "PROCEDURE",
+        "name": "ERP measures of attention and memory",
+        "description": null
+      }
+    },
+    {
+      "key": "interventions:NCT00000105:398574422",
+      "label": "Intervention",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398574422,
+        "nct_id": "NCT00000105",
+        "id": 398574422,
+        "intervention_type": "BIOLOGICAL",
+        "name": "Intracel KLH Vaccine",
+        "description": "Intracel KLH 1000 mcg (1 mg) without adjuvant, subcutaneous Tetanus Toxoid 0.5 ml intramuscularly."
+      }
+    },
+    {
+      "key": "interventions:NCT00000105:398574423",
+      "label": "Intervention",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398574423,
+        "nct_id": "NCT00000105",
+        "id": 398574423,
+        "intervention_type": "BIOLOGICAL",
+        "name": "Biosyn KLH",
+        "description": "Biosyn KLH 1000 mcg (1 mg) without adjuvant, subcutaneous tetanus toxoid 0.5 ml intramuscularly."
+      }
+    },
+    {
+      "key": "interventions:NCT00000105:398574424",
+      "label": "Intervention",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398574424,
+        "nct_id": "NCT00000105",
+        "id": 398574424,
+        "intervention_type": "DRUG",
+        "name": "Montanide ISA51",
+        "description": "Emulsify the KLH with Montanide ISA-51. The KLH 1 mg vial will be reconstituted in 0.5 mL sterile water. Once solubilized, add 0.6 mL of Montanide ISA to the vial and administered contents subcutaneously."
+      }
+    },
+    {
+      "key": "interventions:NCT00000105:398574425",
+      "label": "Intervention",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398574425,
+        "nct_id": "NCT00000105",
+        "id": 398574425,
+        "intervention_type": "BIOLOGICAL",
+        "name": "Tetanus toxoid",
+        "description": "Tetanus Toxoid Adsorbed, Aluminum Phosphate Adsorbed, PUROGENATED\u00ae (TT), is a sterile preparation of refined tetanus toxoid for intramuscular use only."
+      }
+    },
+    {
+      "key": "interventions:NCT00000106:398748786",
+      "label": "Intervention",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398748786,
+        "nct_id": "NCT00000106",
+        "id": 398748786,
+        "intervention_type": "DEVICE",
+        "name": "Whole body hyperthermia unit",
+        "description": null
+      }
+    },
+    {
+      "key": "sponsors:NCT00000102:387618641",
+      "label": "Sponsor",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 387618641,
+        "nct_id": "NCT00000102",
+        "id": 387618641,
+        "agency_class": "NIH",
+        "lead_or_collaborator": "lead",
+        "name": "National Center for Research Resources (NCRR)"
+      }
+    },
+    {
+      "key": "sponsors:NCT00000104:386873091",
+      "label": "Sponsor",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 386873091,
+        "nct_id": "NCT00000104",
+        "id": 386873091,
+        "agency_class": "FED",
+        "lead_or_collaborator": "collaborator",
+        "name": "HRSA/Maternal and Child Health Bureau"
+      }
+    },
+    {
+      "key": "sponsors:NCT00000104:386873544",
+      "label": "Sponsor",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 386873544,
+        "nct_id": "NCT00000104",
+        "id": 386873544,
+        "agency_class": "NIH",
+        "lead_or_collaborator": "lead",
+        "name": "National Center for Research Resources (NCRR)"
+      }
+    },
+    {
+      "key": "sponsors:NCT00000105:387548165",
+      "label": "Sponsor",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 387548165,
+        "nct_id": "NCT00000105",
+        "id": 387548165,
+        "agency_class": "OTHER",
+        "lead_or_collaborator": "lead",
+        "name": "Masonic Cancer Center, University of Minnesota"
+      }
+    },
+    {
+      "key": "sponsors:NCT00000106:387711936",
+      "label": "Sponsor",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 387711936,
+        "nct_id": "NCT00000106",
+        "id": 387711936,
+        "agency_class": "NIH",
+        "lead_or_collaborator": "lead",
+        "name": "National Center for Research Resources (NCRR)"
+      }
+    },
+    {
+      "key": "sponsors:NCT00000107:387603460",
+      "label": "Sponsor",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 387603460,
+        "nct_id": "NCT00000107",
+        "id": 387603460,
+        "agency_class": "NIH",
+        "lead_or_collaborator": "lead",
+        "name": "National Center for Research Resources (NCRR)"
+      }
+    },
+    {
+      "key": "facilities:NCT00000102:1430036727",
+      "label": "Facility",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1430036727,
+        "nct_id": "NCT00000102",
+        "id": 1430036727,
+        "status": null,
+        "name": "Medical University of South Carolina",
+        "city": "Charleston",
+        "state": "South Carolina",
+        "zip": null,
+        "country": "United States",
+        "latitude": "32.776320",
+        "longitude": "-79.932750"
+      }
+    },
+    {
+      "key": "facilities:NCT00000104:1427274318",
+      "label": "Facility",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1427274318,
+        "nct_id": "NCT00000104",
+        "id": 1427274318,
+        "status": null,
+        "name": "Department of Neurology 420 Delaware St. SE, Box 486 Mayo",
+        "city": "Minneapolis",
+        "state": "Minnesota",
+        "zip": "55455",
+        "country": "United States",
+        "latitude": "44.979970",
+        "longitude": "-93.263840"
+      }
+    },
+    {
+      "key": "facilities:NCT00000105:1429752492",
+      "label": "Facility",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1429752492,
+        "nct_id": "NCT00000105",
+        "id": 1429752492,
+        "status": null,
+        "name": "Division of Hematology, Oncology, and Transplantation 420 Delaware St., SE, Box 806 Mayo",
+        "city": "Minneapolis",
+        "state": "Minnesota",
+        "zip": "55455",
+        "country": "United States",
+        "latitude": "44.979970",
+        "longitude": "-93.263840"
+      }
+    },
+    {
+      "key": "facilities:NCT00000106:1430361280",
+      "label": "Facility",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1430361280,
+        "nct_id": "NCT00000106",
+        "id": 1430361280,
+        "status": null,
+        "name": "K4/666 CSC 600 Highland Av",
+        "city": "Madison",
+        "state": "Wisconsin",
+        "zip": "53792",
+        "country": "United States",
+        "latitude": "43.073050",
+        "longitude": "-89.401230"
+      }
+    },
+    {
+      "key": "facilities:NCT00000107:1429987166",
+      "label": "Facility",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1429987166,
+        "nct_id": "NCT00000107",
+        "id": 1429987166,
+        "status": null,
+        "name": "University of Vermont",
+        "city": "Burlington",
+        "state": "Vermont",
+        "zip": "05401",
+        "country": "United States",
+        "latitude": "44.475880",
+        "longitude": "-73.212070"
+      }
+    },
+    {
+      "key": "designs:NCT00000102:233300543",
+      "label": "Design",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 233300543,
+        "nct_id": "NCT00000102",
+        "id": 233300543,
+        "allocation": null,
+        "intervention_model": "PARALLEL",
+        "observational_model": null,
+        "primary_purpose": "TREATMENT",
+        "time_perspective": null,
+        "masking": "DOUBLE",
+        "masking_description": null,
+        "intervention_model_description": null,
+        "subject_masked": null,
+        "caregiver_masked": null,
+        "investigator_masked": null,
+        "outcomes_assessor_masked": null
+      }
+    },
+    {
+      "key": "designs:NCT00000104:232837034",
+      "label": "Design",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 232837034,
+        "nct_id": "NCT00000104",
+        "id": 232837034,
+        "allocation": null,
+        "intervention_model": null,
+        "observational_model": "DEFINED_POPULATION",
+        "primary_purpose": null,
+        "time_perspective": "OTHER",
+        "masking": null,
+        "masking_description": null,
+        "intervention_model_description": null,
+        "subject_masked": null,
+        "caregiver_masked": null,
+        "investigator_masked": null,
+        "outcomes_assessor_masked": null
+      }
+    },
+    {
+      "key": "designs:NCT00000105:233256473",
+      "label": "Design",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 233256473,
+        "nct_id": "NCT00000105",
+        "id": 233256473,
+        "allocation": null,
+        "intervention_model": null,
+        "observational_model": "CASE_CONTROL",
+        "primary_purpose": null,
+        "time_perspective": "PROSPECTIVE",
+        "masking": null,
+        "masking_description": null,
+        "intervention_model_description": null,
+        "subject_masked": null,
+        "caregiver_masked": null,
+        "investigator_masked": null,
+        "outcomes_assessor_masked": null
+      }
+    },
+    {
+      "key": "designs:NCT00000106:233359034",
+      "label": "Design",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 233359034,
+        "nct_id": "NCT00000106",
+        "id": 233359034,
+        "allocation": "RANDOMIZED",
+        "intervention_model": "PARALLEL",
+        "observational_model": null,
+        "primary_purpose": "TREATMENT",
+        "time_perspective": null,
+        "masking": null,
+        "masking_description": null,
+        "intervention_model_description": null,
+        "subject_masked": null,
+        "caregiver_masked": null,
+        "investigator_masked": null,
+        "outcomes_assessor_masked": null
+      }
+    },
+    {
+      "key": "designs:NCT00000107:233290870",
+      "label": "Design",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 233290870,
+        "nct_id": "NCT00000107",
+        "id": 233290870,
+        "allocation": null,
+        "intervention_model": null,
+        "observational_model": "CASE_CONTROL",
+        "primary_purpose": null,
+        "time_perspective": null,
+        "masking": null,
+        "masking_description": null,
+        "intervention_model_description": null,
+        "subject_masked": null,
+        "caregiver_masked": null,
+        "investigator_masked": null,
+        "outcomes_assessor_masked": null
+      }
+    },
+    {
+      "key": "eligibilities:NCT00000102:234899922",
+      "label": "Eligibility",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234899922,
+        "nct_id": "NCT00000102",
+        "id": 234899922,
+        "sampling_method": null,
+        "gender": "ALL",
+        "minimum_age": "14 Years",
+        "maximum_age": "35 Years",
+        "healthy_volunteers": false,
+        "population": null,
+        "criteria": "Inclusion Criteria:\n\n* diagnosed with Congenital Adrenal Hyperplasia (CAH)\n* normal ECG during baseline evaluation\n\nExclusion Criteria:\n\n* history of liver disease, or elevated liver function tests\n* history of cardiovascular disease",
+        "gender_description": null,
+        "gender_based": null,
+        "adult": true,
+        "child": true,
+        "older_adult": false
+      }
+    },
+    {
+      "key": "eligibilities:NCT00000104:234433370",
+      "label": "Eligibility",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234433370,
+        "nct_id": "NCT00000104",
+        "id": 234433370,
+        "sampling_method": null,
+        "gender": "FEMALE",
+        "minimum_age": "0 Years",
+        "maximum_age": null,
+        "healthy_volunteers": true,
+        "population": null,
+        "criteria": "Inclusion Criteria:\n\n* Pregnant mothers of the Phillips neighborhood in Minneapolis, Minnesota. Subject recruitment will take place in local clinics which serve pregnant women and offspring",
+        "gender_description": null,
+        "gender_based": null,
+        "adult": true,
+        "child": true,
+        "older_adult": true
+      }
+    },
+    {
+      "key": "eligibilities:NCT00000105:234855577",
+      "label": "Eligibility",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234855577,
+        "nct_id": "NCT00000105",
+        "id": 234855577,
+        "sampling_method": "PROBABILITY_SAMPLE",
+        "gender": "ALL",
+        "minimum_age": "18 Years",
+        "maximum_age": null,
+        "healthy_volunteers": true,
+        "population": "* Normal volunteers\n* Patients with Cancer (breast, melanoma, hematologic)\n* Transplant patients (umbilical cord blood transplant, autologous transplant)\n* Patients receiving other cancer vaccines",
+        "criteria": "Inclusion Criteria:\n\n* Patients must have a diagnosis of cancer of any histologic type.\n* Patients must have a Karnofsky performance status great or equal to 70%.\n* Patients must have an expected survival for at least four months.\n* Normal healthy volunteers to serve as control for this study.\n* All patients must sign informed consent approved by the Committee on the Use of Human Subjects at the University of Minnesota\n\nExclusion Criteria:\n\n* Pregnant or lactating women. Females of child-bearing potential will be asked to take a pregnancy test before receiving vaccines.\n* Serious intercurrent medical illnesses which would interfere with the ability of the patient to carry out the follow-up monitoring program.\n* Immunization should not be administered during the course of any febrile illness or acute infection.\n* Hypersensitivity to any component of the vaccine, including Thimerosal, a mercury derivative.\n* The occurrence of any type of neurologic symptoms to tetanus vaccine in th past.\n* Patients with a history of seafood allergy are excluded from receiving KLH.\n* Subjects who have had tetanus toxoid within the last 7 years are not eligible for tetanus vaccine component of this protocol.",
+        "gender_description": null,
+        "gender_based": null,
+        "adult": true,
+        "child": false,
+        "older_adult": true
+      }
+    },
+    {
+      "key": "eligibilities:NCT00000106:234958792",
+      "label": "Eligibility",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234958792,
+        "nct_id": "NCT00000106",
+        "id": 234958792,
+        "sampling_method": null,
+        "gender": "ALL",
+        "minimum_age": "18 Years",
+        "maximum_age": "65 Years",
+        "healthy_volunteers": false,
+        "population": null,
+        "criteria": "Inclusion Criteria:\n\n* Patients are required to meet the criteria of the American College of Rheumatology (ACR)for rheumatoid arthritis.\n* Patients should be in functional class II, or III according to the criteria of the ACR.\n* All candidates must be unsuccessfully treated (lack of efficacy) with at least two of the following disease-modifying antirheumatic drugs: hydroxychloroquinine, oral or injectable gold, methotrexate, azathioprine, penicillamine, and sulfasalazine.\n* Patients receiving nonsteroidal antiinflammatory drugs (NSAIDs), corticosteroids (\\<= 10 mg per day), or both are eligible if the dosage has been stable for at least four weeks before treatment and remained so throughout the study and follow-up period (the use of narcotics for pain flares is allowed).\n* The necessary degree of disease activity at enrollment should be confirmed by a finding of 10 or more swollen joints, 12 or more tender joints, and one of the following two criteria: a Westergren erythrocyte sedimentation rate of at least 28 mm per hour or a serum C-reactive protein level of more than 2.0 mg per deciliter; or morning stiffness for at least 60 minutes.\n* Patients must have adequate bone marrow function, adequate liver function, adequate renal function, calcium and electrolytes.\n* Patients must have a dobutamine stress ECHO, or exercise cardiac MUGA, or exercise ECHO scan prior to entry and must fulfill certain criteria to be eligible. The spirit of the criteria are to rule out organic heart disease.\n* Respiratory status: Patients who have FEV1 of \\>= 60% of predicted, as well as a maximum voluntary volume (MVV) of \\>= 60% of predicted, and blood gases with a PO2 of \\>= 60 or oxygen saturation of \\>= 90% are eligible.",
+        "gender_description": null,
+        "gender_based": null,
+        "adult": true,
+        "child": false,
+        "older_adult": true
+      }
+    },
+    {
+      "key": "eligibilities:NCT00000107:234890188",
+      "label": "Eligibility",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234890188,
+        "nct_id": "NCT00000107",
+        "id": 234890188,
+        "sampling_method": null,
+        "gender": "ALL",
+        "minimum_age": "17 Years",
+        "maximum_age": "60 Years",
+        "healthy_volunteers": true,
+        "population": null,
+        "criteria": "Inclusion Criteria:\n\n* Resting blood pressure below 140/90",
+        "gender_description": null,
+        "gender_based": null,
+        "adult": true,
+        "child": true,
+        "older_adult": false
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "type": "HAS_CONDITION",
+      "source": "conditions:NCT00000102:416231805",
+      "target": "trial:NCT00000102",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 416231805,
+        "nct_id": "NCT00000102"
+      }
+    },
+    {
+      "type": "HAS_CONDITION",
+      "source": "conditions:NCT00000104:415393801",
+      "target": "trial:NCT00000104",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 415393801,
+        "nct_id": "NCT00000104"
+      }
+    },
+    {
+      "type": "HAS_CONDITION",
+      "source": "conditions:NCT00000105:416151978",
+      "target": "trial:NCT00000105",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 416151978,
+        "nct_id": "NCT00000105"
+      }
+    },
+    {
+      "type": "HAS_CONDITION",
+      "source": "conditions:NCT00000106:416335237",
+      "target": "trial:NCT00000106",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 416335237,
+        "nct_id": "NCT00000106"
+      }
+    },
+    {
+      "type": "HAS_CONDITION",
+      "source": "conditions:NCT00000107:416214468",
+      "target": "trial:NCT00000107",
+      "properties": {
+        "source_table": "conditions",
+        "source_id": 416214468,
+        "nct_id": "NCT00000107"
+      }
+    },
+    {
+      "type": "HAS_INTERVENTION",
+      "source": "interventions:NCT00000102:398649660",
+      "target": "trial:NCT00000102",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398649660,
+        "nct_id": "NCT00000102"
+      }
+    },
+    {
+      "type": "HAS_INTERVENTION",
+      "source": "interventions:NCT00000104:397858168",
+      "target": "trial:NCT00000104",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 397858168,
+        "nct_id": "NCT00000104"
+      }
+    },
+    {
+      "type": "HAS_INTERVENTION",
+      "source": "interventions:NCT00000105:398574422",
+      "target": "trial:NCT00000105",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398574422,
+        "nct_id": "NCT00000105"
+      }
+    },
+    {
+      "type": "HAS_INTERVENTION",
+      "source": "interventions:NCT00000105:398574423",
+      "target": "trial:NCT00000105",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398574423,
+        "nct_id": "NCT00000105"
+      }
+    },
+    {
+      "type": "HAS_INTERVENTION",
+      "source": "interventions:NCT00000105:398574424",
+      "target": "trial:NCT00000105",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398574424,
+        "nct_id": "NCT00000105"
+      }
+    },
+    {
+      "type": "HAS_INTERVENTION",
+      "source": "interventions:NCT00000105:398574425",
+      "target": "trial:NCT00000105",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398574425,
+        "nct_id": "NCT00000105"
+      }
+    },
+    {
+      "type": "HAS_INTERVENTION",
+      "source": "interventions:NCT00000106:398748786",
+      "target": "trial:NCT00000106",
+      "properties": {
+        "source_table": "interventions",
+        "source_id": 398748786,
+        "nct_id": "NCT00000106"
+      }
+    },
+    {
+      "type": "SPONSORED_BY",
+      "source": "sponsors:NCT00000102:387618641",
+      "target": "trial:NCT00000102",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 387618641,
+        "nct_id": "NCT00000102"
+      }
+    },
+    {
+      "type": "SPONSORED_BY",
+      "source": "sponsors:NCT00000104:386873091",
+      "target": "trial:NCT00000104",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 386873091,
+        "nct_id": "NCT00000104"
+      }
+    },
+    {
+      "type": "SPONSORED_BY",
+      "source": "sponsors:NCT00000104:386873544",
+      "target": "trial:NCT00000104",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 386873544,
+        "nct_id": "NCT00000104"
+      }
+    },
+    {
+      "type": "SPONSORED_BY",
+      "source": "sponsors:NCT00000105:387548165",
+      "target": "trial:NCT00000105",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 387548165,
+        "nct_id": "NCT00000105"
+      }
+    },
+    {
+      "type": "SPONSORED_BY",
+      "source": "sponsors:NCT00000106:387711936",
+      "target": "trial:NCT00000106",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 387711936,
+        "nct_id": "NCT00000106"
+      }
+    },
+    {
+      "type": "SPONSORED_BY",
+      "source": "sponsors:NCT00000107:387603460",
+      "target": "trial:NCT00000107",
+      "properties": {
+        "source_table": "sponsors",
+        "source_id": 387603460,
+        "nct_id": "NCT00000107"
+      }
+    },
+    {
+      "type": "HAS_FACILITY",
+      "source": "facilities:NCT00000102:1430036727",
+      "target": "trial:NCT00000102",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1430036727,
+        "nct_id": "NCT00000102"
+      }
+    },
+    {
+      "type": "HAS_FACILITY",
+      "source": "facilities:NCT00000104:1427274318",
+      "target": "trial:NCT00000104",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1427274318,
+        "nct_id": "NCT00000104"
+      }
+    },
+    {
+      "type": "HAS_FACILITY",
+      "source": "facilities:NCT00000105:1429752492",
+      "target": "trial:NCT00000105",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1429752492,
+        "nct_id": "NCT00000105"
+      }
+    },
+    {
+      "type": "HAS_FACILITY",
+      "source": "facilities:NCT00000106:1430361280",
+      "target": "trial:NCT00000106",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1430361280,
+        "nct_id": "NCT00000106"
+      }
+    },
+    {
+      "type": "HAS_FACILITY",
+      "source": "facilities:NCT00000107:1429987166",
+      "target": "trial:NCT00000107",
+      "properties": {
+        "source_table": "facilities",
+        "source_id": 1429987166,
+        "nct_id": "NCT00000107"
+      }
+    },
+    {
+      "type": "HAS_DESIGN",
+      "source": "designs:NCT00000102:233300543",
+      "target": "trial:NCT00000102",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 233300543,
+        "nct_id": "NCT00000102"
+      }
+    },
+    {
+      "type": "HAS_DESIGN",
+      "source": "designs:NCT00000104:232837034",
+      "target": "trial:NCT00000104",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 232837034,
+        "nct_id": "NCT00000104"
+      }
+    },
+    {
+      "type": "HAS_DESIGN",
+      "source": "designs:NCT00000105:233256473",
+      "target": "trial:NCT00000105",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 233256473,
+        "nct_id": "NCT00000105"
+      }
+    },
+    {
+      "type": "HAS_DESIGN",
+      "source": "designs:NCT00000106:233359034",
+      "target": "trial:NCT00000106",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 233359034,
+        "nct_id": "NCT00000106"
+      }
+    },
+    {
+      "type": "HAS_DESIGN",
+      "source": "designs:NCT00000107:233290870",
+      "target": "trial:NCT00000107",
+      "properties": {
+        "source_table": "designs",
+        "source_id": 233290870,
+        "nct_id": "NCT00000107"
+      }
+    },
+    {
+      "type": "HAS_ELIGIBILITY",
+      "source": "eligibilities:NCT00000102:234899922",
+      "target": "trial:NCT00000102",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234899922,
+        "nct_id": "NCT00000102"
+      }
+    },
+    {
+      "type": "HAS_ELIGIBILITY",
+      "source": "eligibilities:NCT00000104:234433370",
+      "target": "trial:NCT00000104",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234433370,
+        "nct_id": "NCT00000104"
+      }
+    },
+    {
+      "type": "HAS_ELIGIBILITY",
+      "source": "eligibilities:NCT00000105:234855577",
+      "target": "trial:NCT00000105",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234855577,
+        "nct_id": "NCT00000105"
+      }
+    },
+    {
+      "type": "HAS_ELIGIBILITY",
+      "source": "eligibilities:NCT00000106:234958792",
+      "target": "trial:NCT00000106",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234958792,
+        "nct_id": "NCT00000106"
+      }
+    },
+    {
+      "type": "HAS_ELIGIBILITY",
+      "source": "eligibilities:NCT00000107:234890188",
+      "target": "trial:NCT00000107",
+      "properties": {
+        "source_table": "eligibilities",
+        "source_id": 234890188,
+        "nct_id": "NCT00000107"
+      }
+    }
+  ]
+}

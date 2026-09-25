@@ -1,0 +1,174 @@
+{
+  "metadata": {
+    "source_database": "aact_full",
+    "source_schema": "ctgov",
+    "scope_type": "deterministic_nct_id_order",
+    "scope_limit": 1,
+    "extracted_at_utc": "2026-09-19T10:43:25.397969+00:00",
+    "nct_ids": [
+      "NCT00000102"
+    ],
+    "tables": [
+      "studies",
+      "conditions",
+      "interventions",
+      "sponsors",
+      "facilities",
+      "designs",
+      "eligibilities"
+    ]
+  },
+  "tables": {
+    "studies": [
+      {
+        "nct_id": "NCT00000102",
+        "nlm_download_date_description": null,
+        "study_first_submitted_date": "1999-11-03",
+        "results_first_submitted_date": null,
+        "disposition_first_submitted_date": null,
+        "last_update_submitted_date": "2005-06-23",
+        "study_first_submitted_qc_date": "1999-11-03",
+        "study_first_posted_date": "1999-11-04",
+        "study_first_posted_date_type": "ESTIMATED",
+        "results_first_submitted_qc_date": null,
+        "results_first_posted_date": null,
+        "results_first_posted_date_type": null,
+        "disposition_first_submitted_qc_date": null,
+        "disposition_first_posted_date": null,
+        "disposition_first_posted_date_type": null,
+        "last_update_submitted_qc_date": "2005-06-23",
+        "last_update_posted_date": "2005-06-24",
+        "last_update_posted_date_type": "ESTIMATED",
+        "start_month_year": null,
+        "start_date_type": null,
+        "start_date": null,
+        "verification_month_year": "2004-01",
+        "verification_date": "2004-01-31",
+        "completion_month_year": null,
+        "completion_date_type": null,
+        "completion_date": null,
+        "primary_completion_month_year": null,
+        "primary_completion_date_type": null,
+        "primary_completion_date": null,
+        "target_duration": null,
+        "study_type": "INTERVENTIONAL",
+        "acronym": null,
+        "baseline_population": null,
+        "brief_title": "Congenital Adrenal Hyperplasia: Calcium Channels as Therapeutic Targets",
+        "official_title": null,
+        "overall_status": "COMPLETED",
+        "last_known_status": null,
+        "phase": "PHASE1/PHASE2",
+        "enrollment": null,
+        "enrollment_type": null,
+        "source": "National Center for Research Resources (NCRR)",
+        "limitations_and_caveats": null,
+        "number_of_arms": null,
+        "number_of_groups": null,
+        "why_stopped": null,
+        "has_expanded_access": false,
+        "expanded_access_type_individual": null,
+        "expanded_access_type_intermediate": null,
+        "expanded_access_type_treatment": null,
+        "has_dmc": null,
+        "is_fda_regulated_drug": null,
+        "is_fda_regulated_device": null,
+        "is_unapproved_device": null,
+        "is_ppsd": null,
+        "is_us_export": null,
+        "biospec_retention": null,
+        "biospec_description": null,
+        "ipd_time_frame": null,
+        "ipd_access_criteria": null,
+        "ipd_url": null,
+        "plan_to_share_ipd": null,
+        "plan_to_share_ipd_description": null,
+        "created_at": "2026-09-15 19:52:46.602626",
+        "updated_at": "2026-09-15 19:52:46.602626",
+        "source_class": "NIH",
+        "delayed_posting": null,
+        "expanded_access_nctid": null,
+        "expanded_access_status_for_nctid": null,
+        "fdaaa801_violation": null,
+        "baseline_type_units_analyzed": null,
+        "patient_registry": null
+      }
+    ],
+    "conditions": [
+      {
+        "id": 416231805,
+        "nct_id": "NCT00000102",
+        "name": "Congenital Adrenal Hyperplasia",
+        "downcase_name": "congenital adrenal hyperplasia"
+      }
+    ],
+    "interventions": [
+      {
+        "id": 398649660,
+        "nct_id": "NCT00000102",
+        "intervention_type": "DRUG",
+        "name": "Nifedipine",
+        "description": null
+      }
+    ],
+    "sponsors": [
+      {
+        "id": 387618641,
+        "nct_id": "NCT00000102",
+        "agency_class": "NIH",
+        "lead_or_collaborator": "lead",
+        "name": "National Center for Research Resources (NCRR)"
+      }
+    ],
+    "facilities": [
+      {
+        "id": 1430036727,
+        "nct_id": "NCT00000102",
+        "status": null,
+        "name": "Medical University of South Carolina",
+        "city": "Charleston",
+        "state": "South Carolina",
+        "zip": null,
+        "country": "United States",
+        "latitude": "32.776320",
+        "longitude": "-79.932750"
+      }
+    ],
+    "designs": [
+      {
+        "id": 233300543,
+        "nct_id": "NCT00000102",
+        "allocation": null,
+        "intervention_model": "PARALLEL",
+        "observational_model": null,
+        "primary_purpose": "TREATMENT",
+        "time_perspective": null,
+        "masking": "DOUBLE",
+        "masking_description": null,
+        "intervention_model_description": null,
+        "subject_masked": null,
+        "caregiver_masked": null,
+        "investigator_masked": null,
+        "outcomes_assessor_masked": null
+      }
+    ],
+    "eligibilities": [
+      {
+        "id": 234899922,
+        "nct_id": "NCT00000102",
+        "sampling_method": null,
+        "gender": "ALL",
+        "minimum_age": "14 Years",
+        "maximum_age": "35 Years",
+        "healthy_volunteers": false,
+        "population": null,
+        "criteria": "Inclusion Criteria:\n\n* diagnosed with Congenital Adrenal Hyperplasia (CAH)\n* normal ECG during baseline evaluation\n\nExclusion Criteria:\n\n* history of liver disease, or elevated liver function tests\n* history of cardiovascular disease",
+        "gender_description": null,
+        "gender_based": null,
+        "adult": true,
+        "child": true,
+        "older_adult": false
+      }
+    ]
+  }
+}

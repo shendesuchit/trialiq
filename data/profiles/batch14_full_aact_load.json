@@ -1,0 +1,146 @@
+{
+  "batch": 14,
+  "loader_origin_batch": 13,
+  "loader_version": "batch13-canonical-v1",
+  "run_id": "batch13-canonical-v1:20260925T075114Z:4898707e",
+  "mode": "full",
+  "passed": true,
+  "started_at_utc": "2026-09-25T07:51:14.802991+00:00",
+  "completed_at_utc": "2026-09-25T08:20:45.237853+00:00",
+  "scope": {
+    "requested_limit": null,
+    "trial_count": 602891,
+    "first_nct_id": "NCT00000102",
+    "last_nct_id": "NCT07821515",
+    "batch_size": 5000,
+    "batch_count": 121
+  },
+  "load": {
+    "trials_loaded": 602891,
+    "entities": {
+      "conditions": {
+        "nodes_touched": 580212,
+        "relationships_loaded": 1083806,
+        "source_rows": 1083806
+      },
+      "interventions": {
+        "nodes_touched": 785017,
+        "relationships_loaded": 1001094,
+        "source_rows": 1019590
+      },
+      "sponsors": {
+        "nodes_touched": 427779,
+        "relationships_loaded": 961152,
+        "source_rows": 961155
+      }
+    },
+    "cleanup": {
+      "conditions_canonical_relationships": 10603,
+      "conditions_legacy_relationships": 0,
+      "conditions_legacy_nodes": 0,
+      "interventions_canonical_relationships": 10408,
+      "interventions_legacy_relationships": 0,
+      "interventions_legacy_nodes": 0,
+      "sponsors_canonical_relationships": 7485,
+      "sponsors_legacy_relationships": 0,
+      "sponsors_legacy_nodes": 0
+    },
+    "orphaned_canonical_nodes_removed": {
+      "conditions": 0,
+      "interventions": 0,
+      "sponsors": 0
+    },
+    "fanout_nodes_refreshed": {
+      "conditions": 131245,
+      "interventions": 526899,
+      "sponsors": 102617
+    },
+    "blank_name_policy": "source rows with null/blank names are excluded"
+  },
+  "reconciliation": {
+    "passed": true,
+    "run_id": "batch13-canonical-v1:20260925T075114Z:4898707e",
+    "trials": {
+      "expected": 602891,
+      "actual": 602891,
+      "provenance_trials": 602891,
+      "passed": true
+    },
+    "entities": {
+      "conditions": {
+        "expected_relationships": 1083806,
+        "actual_relationships": 1083806,
+        "expected_source_rows": 1083806,
+        "actual_represented_source_rows": 1083806,
+        "provenance_relationships": 1083806,
+        "connected_canonical_nodes": 131245,
+        "passed": true
+      },
+      "interventions": {
+        "expected_relationships": 1001094,
+        "actual_relationships": 1001094,
+        "expected_source_rows": 1019590,
+        "actual_represented_source_rows": 1019590,
+        "provenance_relationships": 1001094,
+        "connected_canonical_nodes": 526899,
+        "passed": true
+      },
+      "sponsors": {
+        "expected_relationships": 961152,
+        "actual_relationships": 961152,
+        "expected_source_rows": 961155,
+        "actual_represented_source_rows": 961155,
+        "provenance_relationships": 961152,
+        "connected_canonical_nodes": 102617,
+        "passed": true
+      }
+    },
+    "errors": []
+  },
+  "source_sample_verification": {
+    "passed": true,
+    "sample_count": 3,
+    "samples": [
+      {
+        "nct_id": "NCT00000102",
+        "status": "VERIFIED",
+        "passed": true,
+        "discrepancies": [],
+        "validation": {
+          "valid": true,
+          "errors": [],
+          "warnings": []
+        }
+      },
+      {
+        "nct_id": "NCT03878940",
+        "status": "VERIFIED",
+        "passed": true,
+        "discrepancies": [],
+        "validation": {
+          "valid": true,
+          "errors": [],
+          "warnings": []
+        }
+      },
+      {
+        "nct_id": "NCT07821515",
+        "status": "VERIFIED",
+        "passed": true,
+        "discrepancies": [],
+        "validation": {
+          "valid": true,
+          "errors": [],
+          "warnings": []
+        }
+      }
+    ]
+  },
+  "constraints_preserved": {
+    "mcp_graph_transport": true,
+    "no_direct_runtime_fallback_added": true,
+    "fixed_loader_cypher_only": true,
+    "frontend_modified": false,
+    "llm_orchestration_modified": false
+  }
+}

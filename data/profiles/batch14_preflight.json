@@ -1,0 +1,27 @@
+{
+  "batch": 14,
+  "mode": "full_load_preflight",
+  "passed": true,
+  "source": {
+    "database": "aact_full",
+    "schema": "ctgov",
+    "row_counts": {
+      "studies": 602891,
+      "conditions": 1083806,
+      "interventions": 1019768,
+      "sponsors": 961155
+    }
+  },
+  "graph": {
+    "required_constraints": [
+      "condition_canonical_key_unique",
+      "intervention_canonical_key_unique",
+      "sponsor_canonical_key_unique",
+      "trial_nct_id_unique"
+    ],
+    "missing_constraints": [],
+    "trial_nodes": 5004,
+    "canonical_loaded_trials": 5000
+  },
+  "errors": []
+}

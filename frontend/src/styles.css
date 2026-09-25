@@ -1,0 +1,10 @@
+/* TrialIQ global bootstrap.
+   Component and design-system styles live in App.css to avoid legacy cascade conflicts. */
+html { background: #f4f7fb; }
+body { margin: 0; }
+#root { min-height: 100vh; }
+/* TrialIQ global bootstrap.
+   Component and design-system styles live in App.css to avoid legacy cascade conflicts. */
+html { background: #f4f7fb; }
+body { margin: 0; }
+#root { min-height: 100vh; }
