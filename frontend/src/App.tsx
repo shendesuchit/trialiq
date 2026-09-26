@@ -3,7 +3,7 @@ import type { FormEvent, KeyboardEvent, PointerEvent as ReactPointerEvent, React
 import "./App.css";
 import {
   Activity, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ChevronUp, CircleAlert, Copy, Cpu,
-  Database, Download, FlaskConical, GitBranch, Info, LayoutDashboard, Maximize2, Menu, Minimize2, Network,
+  Database, Download, FlaskConical, GitBranch, Info, LayoutDashboard, Mail, Maximize2, Menu, Minimize2, Network,
   RotateCcw, Search, ShieldCheck, Table2, TimerReset, Waypoints, X, ZoomIn, ZoomOut
 } from "lucide-react";
 
@@ -135,6 +135,42 @@ type RelatedTrialMatch = {
   connected_via: RelatedTrialPathEvidence[];
   metrics?: RelatedTrialMetrics | null;
 };
+type HumanReviewCandidate = {
+  nct_id: string;
+  title?: string | null;
+  overall_status?: string | null;
+  phase?: string | null;
+  enrollment?: number | null;
+  connection_types?: string[];
+  shared_entities?: string[];
+  evidence_path_count?: number;
+  discovery_hop?: number;
+  suggested?: boolean;
+};
+type HumanReviewCheckpoint = {
+  checkpoint_id: string;
+  required: boolean;
+  threshold: number;
+  candidate_count: number;
+  suggested_nct_ids?: string[];
+  allow_select_all?: boolean;
+  candidates: HumanReviewCandidate[];
+};
+type HumanReviewSelectionMode = "SELECTED" | "ALL";
+type HumanReviewSelection = {
+  checkpoint_id: string;
+  mode: HumanReviewSelectionMode;
+  selected_nct_ids: string[];
+};
+type HumanReviewDecision = {
+  checkpoint_id: string;
+  mode: HumanReviewSelectionMode;
+  threshold: number;
+  discovered_candidate_count: number;
+  selected_candidate_count: number;
+  selected_nct_ids: string[];
+};
+type ReportSection = "ANSWER" | "STUDIES" | "CONNECTIONS" | "EVIDENCE" | "TECHNICAL_DETAILS";
 type RelatedTrialAggregateMetrics = {
   related_trial_count?: number;
   unique_shared_entity_count?: number;
@@ -195,6 +231,16 @@ type GraphViewResponse = {
 type GraphSelection = { kind: "node"; id: string } | { kind: "edge"; id: string } | null;
 type GraphFilter = "ALL" | GraphRelationship;
 type GraphDisplayMode = "network" | "table";
+type GraphConnectionRow = {
+  studyId: string;
+  studyLabel: string;
+  whyConnected: string;
+  sharedEntity: string;
+  depth: number;
+  depthLabel: string;
+  pathNodeIds: string[];
+  pathEdgeIds: string[];
+};
 type GroundedAnswer = {
   status?: string;
   question?: string;
@@ -245,13 +291,22 @@ type StructuredSynthesis = {
 type AgentRunResult = {
   run_id?: string;
   status?: string;
-  answer?: GroundedAnswer;
+  answer: GroundedAnswer;
   retrieval?: RetrievalResult;
   validation?: AgentValidation;
   generation?: GenerationMetadata | null;
   structured_synthesis?: StructuredSynthesis | null;
+  human_review_decision?: HumanReviewDecision | null;
   trace?: StageTrace[];
 };
+type AgentHumanReviewRun = {
+  run_id: string;
+  status: "REVIEW_REQUIRED";
+  retrieval: RetrievalResult;
+  human_review: HumanReviewCheckpoint;
+  trace?: StageTrace[];
+};
+type AgentQueryResponse = AgentRunResult | AgentHumanReviewRun;
 type UiResult = GroundedAnswer & {
   execution_mode?: ExecutionMode;
   run_id?: string;
@@ -260,6 +315,7 @@ type UiResult = GroundedAnswer & {
   agent_validation?: AgentValidation;
   generation?: GenerationMetadata | null;
   structured_synthesis?: StructuredSynthesis | null;
+  human_review_decision?: HumanReviewDecision | null;
   trace?: StageTrace[];
   [key: string]: unknown;
 };
@@ -311,13 +367,19 @@ function getToolName(result: UiResult | null) {
 function getRelatedTrialResponse(result: UiResult | null): RelatedTrialResponse | null {
   return result?.related_trial_response ?? result?.retrieval?.related_trial_response ?? null;
 }
-function preferredInvestigatorTab(question: string): InvestigatorTab {
-  const value = question.trim().toLowerCase();
-  if (/\b(compare|comparison|versus|vs\.?|difference)\b/.test(value)) return "studies";
-  if (/\b(why|how)\b.*\b(connect|related|relationship)/.test(value)) return "connections";
-  if (/\b(evidence|source|sources|provenance|supporting record|audit)\b/.test(value)) return "evidence";
-  if (/\b(find|show|list)\b.*\b(related|similar)\b.*\b(stud(?:y|ies)|trials?)\b/.test(value) || /\brelated (studies|trials)\b/.test(value)) return "studies";
-  return "answer";
+function isHumanReviewRun(payload: AgentQueryResponse): payload is AgentHumanReviewRun {
+  return payload.status === "REVIEW_REQUIRED" && "human_review" in payload;
+}
+function humanStatusLabel(value: string | null | undefined) {
+  if (!value) return "Not reported";
+  return value.split("_").map((part) => part.charAt(0) + part.slice(1).toLowerCase()).join(" ");
+}
+function clinicalStatusClass(value: string | null | undefined) {
+  const status = (value ?? "").toUpperCase();
+  if (status === "COMPLETED") return "clinical-status-completed";
+  if (["RECRUITING", "ACTIVE_NOT_RECRUITING", "ENROLLING_BY_INVITATION", "NOT_YET_RECRUITING"].includes(status)) return "clinical-status-active";
+  if (["TERMINATED", "WITHDRAWN", "SUSPENDED"].includes(status)) return "clinical-status-stopped";
+  return "clinical-status-neutral";
 }
 function formatDuration(durationMs: number | undefined) {
   if (durationMs === undefined || !Number.isFinite(durationMs)) return "Not reported";
@@ -433,41 +495,77 @@ function CompactModeSelector({ mode, onChange, disabled }: { mode: ExecutionMode
 }
 
 function ClinicalStudySelector({
-  trials, search, onSearch, selected, onSelect, onQuestion, catalogLoading, catalogError,
+  trials, search, onSearch, selected, onSelect, onClearSelection, onQuestion, catalogLoading, catalogError,
 }: {
   trials: TrialCatalogItem[];
   search: string;
   onSearch: (value: string) => void;
   selected: TrialCatalogItem | null;
   onSelect: (nctId: string) => void;
+  onClearSelection: () => void;
   onQuestion: (question: string) => void;
   catalogLoading: boolean;
   catalogError: string;
 }) {
-  const options = selected && !trials.some((trial) => trial.nct_id === selected.nct_id) ? [selected, ...trials] : trials;
-  const title = selected?.brief_title || selected?.official_title || "Choose a loaded study";
+  const normalizedSearch = search.trim().toUpperCase();
+  const rankedTrials = [...trials].sort((left, right) => {
+    const leftNct = left.nct_id.toUpperCase();
+    const rightNct = right.nct_id.toUpperCase();
+    const leftRank = normalizedSearch && leftNct === normalizedSearch ? 0 : normalizedSearch && leftNct.startsWith(normalizedSearch) ? 1 : 2;
+    const rightRank = normalizedSearch && rightNct === normalizedSearch ? 0 : normalizedSearch && rightNct.startsWith(normalizedSearch) ? 1 : 2;
+    return leftRank - rightRank || left.nct_id.localeCompare(right.nct_id);
+  });
+  const suggestedTrials = rankedTrials.filter((trial) => trial.has_graph_neighbors).slice(0, 4);
+  const displayedTrials = normalizedSearch ? rankedTrials.slice(0, 8) : (suggestedTrials.length ? suggestedTrials : rankedTrials.slice(0, 4));
+  const exactMatch = normalizedSearch ? rankedTrials.find((trial) => trial.nct_id.toUpperCase() === normalizedSearch) : undefined;
+  const title = selected?.brief_title || selected?.official_title || "Selected study";
   const questions = selected?.suggested_questions ?? [];
+  const selectTrial = (nctId: string) => {
+    onSelect(nctId);
+    onSearch("");
+  };
+
   return <div className="clinical-study-selector">
-    <div className="clinical-study-summary">
-      <div>
-        <span>Study of interest</span>
-        <strong>{selected?.nct_id ?? "Choose a study"}</strong>
-        <p title={title}>{title}</p>
+    {selected ? <>
+      <div className="clinical-study-summary clinical-study-summary-selected">
+        <div>
+          <span>Study of interest</span>
+          <strong>{selected.nct_id}</strong>
+          <p title={title}>{title}</p>
+        </div>
+        <div className="clinical-study-summary-actions">
+          <div className="clinical-study-tags">
+            {selected.overall_status && <span>{selected.overall_status}</span>}
+            <span>{selected.has_graph_neighbors ? `${selected.related_trial_count}${selected.related_trial_count_capped ? "+" : ""} connected stud${selected.related_trial_count === 1 && !selected.related_trial_count_capped ? "y" : "ies"}` : "No connected studies loaded"}</span>
+          </div>
+          <button type="button" className="clinical-change-study" onClick={onClearSelection}>Change study</button>
+        </div>
       </div>
-      <div className="clinical-study-tags">
-        {selected?.overall_status && <span>{selected.overall_status}</span>}
-        {selected && <span>{selected.has_graph_neighbors ? `${selected.related_trial_count}${selected.related_trial_count_capped ? "+" : ""} connected stud${selected.related_trial_count === 1 && !selected.related_trial_count_capped ? "y" : "ies"}` : "No connected studies loaded"}</span>}
+      {!!questions.length && <div className="clinical-question-prompts"><span>Suggested questions</span><div>{questions.slice(0, 3).map((item) => <button type="button" key={item.kind} onClick={() => onQuestion(item.question)} title={item.question}>{item.label}</button>)}</div></div>}
+    </> : <>
+      <label className="clinical-study-search clinical-study-search-single"><Search size={15}/><span className="sr-only">Search loaded studies</span><input
+        value={search}
+        onChange={(event) => onSearch(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && exactMatch) {
+            event.preventDefault();
+            selectTrial(exactMatch.nct_id);
+          }
+        }}
+        placeholder="Search by NCT ID or study title"
+        autoComplete="off"
+      /></label>
+      <div className="clinical-study-results" aria-live="polite">
+        <div className="clinical-study-results-heading"><span>{normalizedSearch ? "Matching studies" : "Suggested studies"}</span>{catalogLoading && <small>Searching…</small>}</div>
+        {!catalogLoading && !displayedTrials.length ? <div className="clinical-study-no-results">{normalizedSearch ? "No loaded studies match this search." : "No suggested studies are available."}</div> :
+          <div className="clinical-study-result-list">{displayedTrials.map((trial) => <button type="button" key={trial.nct_id} className="clinical-study-result" onClick={() => selectTrial(trial.nct_id)}>
+            <span className="clinical-study-result-id">{trial.nct_id}</span>
+            <span className="clinical-study-result-title">{trial.brief_title || trial.official_title || "Untitled study"}</span>
+            <span className="clinical-study-result-meta">{[trial.overall_status, trial.has_graph_neighbors ? `${trial.related_trial_count}${trial.related_trial_count_capped ? "+" : ""} connected studies` : null].filter(Boolean).join(" · ")}</span>
+          </button>)}</div>}
       </div>
-    </div>
-    <div className="clinical-study-controls">
-      <label className="clinical-study-search"><Search size={15}/><span className="sr-only">Search loaded studies</span><input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search by study title or NCT ID"/></label>
-      <label className="clinical-study-select"><span className="sr-only">Choose a loaded study</span><select value={selected?.nct_id ?? ""} onChange={(event) => onSelect(event.target.value)} disabled={catalogLoading && !options.length}>
-        {!options.length && <option value="">No studies loaded</option>}
-        {options.map((trial) => <option key={trial.nct_id} value={trial.nct_id}>{trial.nct_id} — {trial.brief_title || trial.official_title || "Untitled study"}</option>)}
-      </select></label>
-    </div>
+    </>}
     {catalogError && <div className="clinical-study-error">{catalogError}</div>}
-    {!!questions.length && <div className="clinical-question-prompts"><span>Suggested questions</span><div>{questions.slice(0, 3).map((item) => <button type="button" key={item.kind} onClick={() => onQuestion(item.question)} title={item.question}>{item.label}</button>)}</div></div>}
   </div>;
 }
 
@@ -478,6 +576,124 @@ function QuerySummaryStrip({ question, anchorNctId, mode, loading, onEdit, onRun
       <p title={question}>{question}</p>
     </div>
     <div className="query-summary-actions"><button type="button" onClick={onEdit}>Edit question</button><button type="button" className="primary-button compact-run" disabled={loading} onClick={onRunAgain}>{loading ? "Running…" : "Run again"}</button></div>
+  </div>;
+}
+
+function HumanReviewModal({ run, question, continuing, error, onEdit, onContinue }: {
+  run: AgentHumanReviewRun;
+  question: string;
+  continuing: boolean;
+  error: string;
+  onEdit: () => void;
+  onContinue: (selection: HumanReviewSelection) => void;
+}) {
+  const checkpoint = run.human_review;
+  const suggestedIds = checkpoint.suggested_nct_ids?.length
+    ? checkpoint.suggested_nct_ids
+    : checkpoint.candidates.filter((candidate) => candidate.suggested).map((candidate) => candidate.nct_id);
+  const [selectedIds, setSelectedIds] = useState<string[]>(suggestedIds);
+  const [candidateSearch, setCandidateSearch] = useState("");
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const normalizedSearch = candidateSearch.trim().toLowerCase();
+  const visibleCandidates = normalizedSearch
+    ? checkpoint.candidates.filter((candidate) => [
+        candidate.nct_id, candidate.title, candidate.overall_status, candidate.phase,
+        ...(candidate.connection_types ?? []), ...(candidate.shared_entities ?? []),
+      ].filter(Boolean).some((value) => String(value).toLowerCase().includes(normalizedSearch)))
+    : checkpoint.candidates;
+  const visibleIds = visibleCandidates.map((candidate) => candidate.nct_id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((nctId) => selectedIds.includes(nctId));
+  const someVisibleSelected = visibleIds.some((nctId) => selectedIds.includes(nctId)) && !allVisibleSelected;
+
+  useEffect(() => {
+    setSelectedIds(suggestedIds);
+    setCandidateSearch("");
+  }, [checkpoint.checkpoint_id]);
+
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someVisibleSelected;
+  }, [someVisibleSelected]);
+
+  useEffect(() => {
+    document.body.classList.add("trialiq-modal-open");
+    return () => document.body.classList.remove("trialiq-modal-open");
+  }, []);
+
+  const toggleCandidate = (nctId: string) => {
+    setSelectedIds((current) => current.includes(nctId) ? current.filter((item) => item !== nctId) : [...current, nctId]);
+  };
+  const toggleVisible = () => setSelectedIds((current) => {
+    if (allVisibleSelected) return current.filter((nctId) => !visibleIds.includes(nctId));
+    return Array.from(new Set([...current, ...visibleIds]));
+  });
+  const selectedContract: HumanReviewSelection | null = selectedIds.length ? {
+    checkpoint_id: checkpoint.checkpoint_id,
+    mode: "SELECTED",
+    selected_nct_ids: selectedIds,
+  } : null;
+  const allContract: HumanReviewSelection = {
+    checkpoint_id: checkpoint.checkpoint_id,
+    mode: "ALL",
+    selected_nct_ids: [],
+  };
+  const friendlyConnection = (value: string) => value === "HAS_CONDITION" ? "Condition" : value === "HAS_INTERVENTION" ? "Intervention" : value === "SPONSORED_BY" ? "Sponsor" : value;
+
+  return <div className="trialiq-modal-backdrop hitl-modal-backdrop" role="presentation">
+    <section className="trialiq-modal hitl-review-panel" role="dialog" aria-modal="true" aria-labelledby="hitl-review-title">
+      <header className="trialiq-modal-header hitl-review-heading">
+        <div><span aria-label="Investigator checkpoint">Investigator input required</span><h2 id="hitl-review-title">Choose the studies to investigate in detail</h2><p>TrialIQ found a broad result set and paused before detailed analysis. Your selection defines the evidence set used for comparison, validation and the final answer.</p></div>
+        <button type="button" className="icon-button modal-close-button" onClick={onEdit} disabled={continuing} aria-label="Return to the question"><X size={18}/></button>
+      </header>
+      <div className="hitl-progress" aria-label="Investigation progress">
+        <span className="complete"><CheckCircle2 size={14}/> Question understood</span>
+        <span className="complete"><CheckCircle2 size={14}/> Candidates discovered</span>
+        <span className="current">3 Investigator review</span>
+        <span>4 Detailed analysis</span>
+        <span>5 Answer</span>
+      </div>
+      <div className="trialiq-modal-body hitl-modal-body">
+        <div className="hitl-question-context"><span>Investigation</span><p>{question}</p></div>
+        <div className="hitl-review-summary">
+          <div><strong>{checkpoint.candidate_count}</strong><span>candidate studies discovered</span></div>
+          <div><strong>{checkpoint.threshold}</strong><span>automatic-analysis threshold</span></div>
+          <div><strong>{selectedIds.length}</strong><span>currently selected</span></div>
+        </div>
+        <div className="hitl-selection-toolbar">
+          <label className="hitl-select-all"><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleVisible} disabled={continuing || !visibleIds.length}/><span><strong>Select all shown studies</strong><small>{visibleIds.length === checkpoint.candidate_count ? `${checkpoint.candidate_count} candidates shown` : `${visibleIds.length} filtered candidates shown`}</small></span></label>
+          <label className="hitl-candidate-search"><Search size={14}/><input value={candidateSearch} onChange={(event) => setCandidateSearch(event.target.value)} placeholder="Search candidates" disabled={continuing}/></label>
+          {!!suggestedIds.length && <button type="button" className="secondary-button" disabled={continuing} onClick={() => setSelectedIds(suggestedIds)}>Use suggested {suggestedIds.length}</button>}
+        </div>
+        <div className="comparison-table-wrap hitl-candidate-table-wrap">
+          <table className="comparison-table hitl-candidate-table">
+            <thead><tr><th className="compare-select-column">Include</th><th>Study</th><th>Why connected</th><th>Status</th><th>Phase</th><th className="numeric-column">Enrollment</th></tr></thead>
+            <tbody>{visibleCandidates.map((candidate) => {
+              const selected = selectedIds.includes(candidate.nct_id);
+              const whyConnected = [
+                ...(candidate.connection_types ?? []).map(friendlyConnection),
+                ...(candidate.shared_entities ?? []).slice(0, 2),
+              ].filter(Boolean).join(" · ") || "Related evidence candidate";
+              return <tr key={candidate.nct_id} className={selected ? "comparison-row-selected" : ""}>
+                <td className="compare-select-cell"><input type="checkbox" checked={selected} disabled={continuing} aria-label={`Include ${candidate.nct_id} in detailed investigation`} onChange={() => toggleCandidate(candidate.nct_id)}/></td>
+                <td><strong>{candidate.nct_id}</strong><span>{candidate.title || "Title not reported"}</span>{candidate.suggested && <small className="hitl-suggested-label">Suggested by TrialIQ</small>}</td>
+                <td>{whyConnected}<span>{candidate.discovery_hop === 2 ? "2-step connection" : "Direct connection"}{candidate.evidence_path_count ? ` · ${candidate.evidence_path_count} supporting link${candidate.evidence_path_count === 1 ? "" : "s"}` : ""}</span></td>
+                <td><span className={`clinical-status ${clinicalStatusClass(candidate.overall_status)}`}>{humanStatusLabel(candidate.overall_status)}</span></td>
+                <td>{candidate.phase || "Not reported"}</td>
+                <td className="numeric-column">{candidate.enrollment === null || candidate.enrollment === undefined ? "—" : candidate.enrollment.toLocaleString()}</td>
+              </tr>;
+            })}</tbody>
+          </table>
+          {!visibleCandidates.length && <div className="hitl-empty-filter"><Search size={18}/><strong>No candidates match this filter.</strong><span>Clear the search to review all discovered studies.</span></div>}
+        </div>
+        {error && <div className="graph-error" role="alert"><CircleAlert size={17}/><span>{error}</span></div>}
+      </div>
+      <footer className="trialiq-modal-footer hitl-review-actions">
+        <div><strong>{selectedIds.length ? `${selectedIds.length} stud${selectedIds.length === 1 ? "y" : "ies"} ready for detailed analysis` : "No studies individually selected"}</strong><span>{selectedIds.length ? "Only the investigator-approved evidence set will drive Analyse selected." : "Analyse all remains available if you want the complete discovered set."}</span></div>
+        <div>
+          <button type="button" className="secondary-button" disabled={continuing || !selectedContract} onClick={() => selectedContract && onContinue(selectedContract)}>{continuing ? "Continuing…" : "Analyse selected"}</button>
+          {checkpoint.allow_select_all !== false && <button type="button" className="primary-button" disabled={continuing} onClick={() => onContinue(allContract)}>{continuing ? "Continuing…" : "Analyse all"}</button>}
+        </div>
+      </footer>
+    </section>
   </div>;
 }
 
@@ -502,6 +718,7 @@ export default function App() {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
   const [selectedCatalogTrial, setSelectedCatalogTrial] = useState<TrialCatalogItem | null>(null);
+  const [pendingHumanReview, setPendingHumanReview] = useState<AgentHumanReviewRun | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -543,15 +760,7 @@ export default function App() {
         if (!active) return;
 
         const trials = Array.isArray(payload.trials) ? payload.trials : [];
-        const preferred = trials.find((trial) => trial.has_graph_neighbors) ?? trials[0] ?? null;
         setTrialCatalog(trials);
-        if (preferred) {
-          setSelectedCatalogTrial((current) => current ?? preferred);
-          setNctId((current) => current || preferred.nct_id);
-          setQuestion((current) => current.trim()
-            ? current
-            : preferred.suggested_questions[0]?.question ?? `Give me an overview of ${preferred.nct_id}`);
-        }
       } catch (error) {
         if (!active || (error instanceof DOMException && error.name === "AbortError")) return;
         setCatalogError(error instanceof Error ? error.message : "The loaded-trial catalog could not be retrieved.");
@@ -595,55 +804,83 @@ export default function App() {
     return payload;
   }
 
+  function presentAgentRunResult(payload: AgentRunResult, submittedQuestion: string) {
+    setPendingHumanReview(null);
+    const relatedResponse = payload.answer.related_trial_response;
+    const anchorNctId = relatedResponse?.seed_nct_id;
+    if (anchorNctId) {
+      const catalogMatch = trialCatalog.find((trial) => trial.nct_id === anchorNctId);
+      const anchorTrial = relatedResponse?.anchor_trial ?? {};
+      const alignedTrial: TrialCatalogItem = catalogMatch ?? {
+        nct_id: anchorNctId,
+        brief_title: typeof anchorTrial.brief_title === "string" ? anchorTrial.brief_title : null,
+        official_title: typeof anchorTrial.official_title === "string" ? anchorTrial.official_title : null,
+        overall_status: typeof anchorTrial.overall_status === "string" ? anchorTrial.overall_status : null,
+        related_trial_count: relatedResponse?.matches?.length ?? 0,
+        has_graph_neighbors: Boolean(relatedResponse?.matches?.length),
+        relationship_types: relatedResponse?.relationship_types ?? [],
+        suggested_questions: [
+          { kind: "related", label: "Find related studies", question: `Find studies related to ${anchorNctId} and explain the evidence connecting them.` },
+          { kind: "evidence", label: "Show supporting evidence", question: `Show the supporting evidence for ${anchorNctId} and its connected studies.` },
+        ],
+      };
+      setSelectedCatalogTrial(alignedTrial);
+      setNctId(anchorNctId);
+    }
+    setResult({
+      ...payload.answer,
+      execution_mode: "agentic",
+      question: text(payload.answer.question, submittedQuestion),
+      run_id: payload.run_id,
+      run_status: payload.status,
+      retrieval: payload.retrieval,
+      agent_validation: payload.validation,
+      generation: payload.generation,
+      structured_synthesis: payload.structured_synthesis,
+      human_review_decision: payload.human_review_decision,
+      trace: payload.trace ?? [],
+    });
+    setLastSubmittedQuestion(submittedQuestion);
+    setInvestigatorTab("answer");
+    setQueryExpanded(false);
+  }
+
   async function requestAgent() {
     setApiError(""); setLoading(true);
     try {
+      const submittedQuestion = question.trim();
       const response = await fetch(`${API_BASE_URL}/api/v1/query/agent`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: question.trim(), limit: 20 }),
+        body: JSON.stringify({ question: submittedQuestion, limit: 20 }),
       });
-      const payload = await parseResponse(response) as AgentRunResult;
-      if (!payload.answer) {
-        throw new Error("The agent completed without returning a grounded answer.");
+      const payload = await parseResponse(response) as AgentQueryResponse;
+      if (isHumanReviewRun(payload)) {
+        setPendingHumanReview(payload);
+        setResult(null);
+        setLastSubmittedQuestion(submittedQuestion);
+        setQueryExpanded(false);
+        setInvestigatorTab("answer");
+        return;
       }
-      const relatedResponse = payload.answer.related_trial_response;
-      const anchorNctId = relatedResponse?.seed_nct_id;
-      if (anchorNctId) {
-        const catalogMatch = trialCatalog.find((trial) => trial.nct_id === anchorNctId);
-        const anchorTrial = relatedResponse?.anchor_trial ?? {};
-        const alignedTrial: TrialCatalogItem = catalogMatch ?? {
-          nct_id: anchorNctId,
-          brief_title: typeof anchorTrial.brief_title === "string" ? anchorTrial.brief_title : null,
-          official_title: typeof anchorTrial.official_title === "string" ? anchorTrial.official_title : null,
-          overall_status: typeof anchorTrial.overall_status === "string" ? anchorTrial.overall_status : null,
-          related_trial_count: relatedResponse?.matches?.length ?? 0,
-          has_graph_neighbors: Boolean(relatedResponse?.matches?.length),
-          relationship_types: relatedResponse?.relationship_types ?? [],
-          suggested_questions: [
-            { kind: "related", label: "Find related studies", question: `Find studies related to ${anchorNctId} and explain the evidence connecting them.` },
-            { kind: "evidence", label: "Show supporting evidence", question: `Show the supporting evidence for ${anchorNctId} and its connected studies.` },
-          ],
-        };
-        setSelectedCatalogTrial(alignedTrial);
-        setNctId(anchorNctId);
-      }
-      setResult({
-        ...payload.answer,
-        execution_mode: "agentic",
-        question: text(payload.answer.question, question),
-        run_id: payload.run_id,
-        run_status: payload.status,
-        retrieval: payload.retrieval,
-        agent_validation: payload.validation,
-        generation: payload.generation,
-        structured_synthesis: payload.structured_synthesis,
-        trace: payload.trace ?? [],
-      });
-      setLastSubmittedQuestion(question.trim());
-      setInvestigatorTab(preferredInvestigatorTab(question));
-      setQueryExpanded(false);
+      presentAgentRunResult(payload, submittedQuestion);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "The agent request failed.");
+    } finally { setLoading(false); }
+  }
+
+  async function continueHumanReview(selection: HumanReviewSelection) {
+    if (!pendingHumanReview) return;
+    setApiError(""); setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/query/agent/continue`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run_id: pendingHumanReview.run_id, selection }),
+      });
+      const payload = await parseResponse(response) as AgentRunResult;
+      if (!payload.answer) throw new Error("The continued investigation did not return a grounded answer.");
+      presentAgentRunResult(payload, lastSubmittedQuestion || question.trim());
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "The paused investigation could not be resumed.");
     } finally { setLoading(false); }
   }
 
@@ -655,6 +892,7 @@ export default function App() {
         body: JSON.stringify({ question: question.trim(), mode: "standard", limit: 20 }),
       });
       const payload = await parseResponse(response) as GroundedAnswer;
+      setPendingHumanReview(null);
       setResult({
         ...payload,
         execution_mode: "baseline",
@@ -664,7 +902,7 @@ export default function App() {
         trace: [],
       });
       setLastSubmittedQuestion(question.trim());
-      setInvestigatorTab(preferredInvestigatorTab(question));
+      setInvestigatorTab("answer");
       setQueryExpanded(false);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "The baseline request failed.");
@@ -680,6 +918,7 @@ export default function App() {
         body: JSON.stringify({ nct_id: normalized }),
       });
       const payload = await parseResponse(response) as GroundedAnswer;
+      setPendingHumanReview(null);
       setResult({ ...payload, execution_mode: "baseline", question: text(payload.question, `Give me an overview of ${normalized}`) });
       setNctId(normalized);
     } catch (error) {
@@ -696,6 +935,7 @@ export default function App() {
   function changeExecutionMode(nextMode: ExecutionMode) {
     if (nextMode === executionMode || loading) return;
     setExecutionMode(nextMode);
+    setPendingHumanReview(null);
     setResult(null);
     setApiError("");
     setWorkspaceTab("evidence");
@@ -712,8 +952,21 @@ export default function App() {
       ?? (selectedCatalogTrial?.nct_id === selectedNctId ? selectedCatalogTrial : null);
     if (!selected) return;
     setSelectedCatalogTrial(selected);
+    setCatalogSearch("");
     setNctId(selected.nct_id);
     setQuestion(selected.suggested_questions[0]?.question ?? `Give me an overview of ${selected.nct_id}`);
+    setPendingHumanReview(null);
+    setResult(null);
+    setInvestigatorTab("answer");
+    setQueryExpanded(true);
+    setApiError("");
+  }
+  function handleCatalogTrialClear() {
+    setSelectedCatalogTrial(null);
+    setCatalogSearch("");
+    setNctId("");
+    setQuestion("");
+    setPendingHumanReview(null);
     setResult(null);
     setInvestigatorTab("answer");
     setQueryExpanded(true);
@@ -750,6 +1003,7 @@ export default function App() {
       </details>
 
       <div className="sidebar-bottom">
+        <div className="runtime-strip-label"><span>Runtime</span><small>System health</small></div>
         <div className="developer-health-strip" aria-label="Developer runtime status">
           <RuntimeHealthIcon label="API" icon={<Activity size={15}/>} state={apiState} component={runtimeReadiness?.components?.api}/>
           <RuntimeHealthIcon label="Neo4j" icon={<Database size={15}/>} state={apiState === "checking" ? "checking" : undefined} component={runtimeReadiness?.components?.neo4j}/>
@@ -787,6 +1041,7 @@ export default function App() {
                 onSearch={setCatalogSearch}
                 selected={selectedCatalogTrial}
                 onSelect={handleCatalogTrialSelect}
+                onClearSelection={handleCatalogTrialClear}
                 onQuestion={(nextQuestion) => setQuestion(nextQuestion)}
                 catalogLoading={catalogLoading}
                 catalogError={catalogError}
@@ -818,6 +1073,7 @@ export default function App() {
 
           {loading && <ProcessingStatus elapsedSeconds={elapsedSeconds} mode={executionMode}/>}
           {result && queryExpanded && <InvestigatorResultWorkspace result={result} summary={summary} tab={investigatorTab} setTab={setInvestigatorTab}/>}
+          {pendingHumanReview && !queryExpanded && <HumanReviewModal run={pendingHumanReview} question={lastSubmittedQuestion || question} continuing={loading} error={apiError} onContinue={continueHumanReview} onEdit={() => { setPendingHumanReview(null); setApiError(""); setQueryExpanded(true); }}/>}
         </>}
 
         {page === "explorer" && <>
@@ -1135,8 +1391,9 @@ function InvestigatorResultWorkspace({ result, summary, tab, setTab }: { result:
   const seedNct = related?.seed_nct_id ?? getEvidence(result)?.nct_id;
   const matches = related?.matches ?? [];
   const connectionIds = new Set(matches.flatMap((match) => (match.connected_via ?? []).map((path, index) => path.entity_id ?? `${path.relationship_type}:${text(path.entity?.canonical_key ?? path.entity?.normalized_name ?? path.entity?.name, String(index))}`)));
-  const wide = tab !== "answer";
-  return <div className={`investigator-result-shell ${wide ? "workspace-active" : "reading-active"} ${tab === "connections" ? "graph-active" : ""}`}>
+  const reviewDecision = result.human_review_decision;
+  return <div className={`investigator-result-shell stable-workspace ${tab === "connections" ? "graph-active" : ""}`}>
+    {reviewDecision && <div className="human-review-decision-strip" aria-label="Investigator study selection summary"><div><span>Investigator-guided analysis</span><strong>{reviewDecision.discovered_candidate_count} discovered · {reviewDecision.selected_candidate_count} analysed</strong></div><small>{reviewDecision.mode === "ALL" ? "All discovered candidates were approved for analysis." : "Only the investigator-selected studies drive this result."}</small></div>}
     <div className="investigator-result-tabs" role="tablist" aria-label="Investigator result views">
       <TabButton active={tab === "answer"} onClick={() => setTab("answer")} icon={<BookOpen size={15}/>} label="Answer"/>
       <TabButton active={tab === "studies"} onClick={() => setTab("studies")} icon={<FlaskConical size={15}/>} label={`Studies${matches.length ? ` · ${matches.length}` : ""}`}/>
@@ -1150,7 +1407,124 @@ function InvestigatorResultWorkspace({ result, summary, tab, setTab }: { result:
       {tab === "connections" && <GraphView result={result}/>}
       {tab === "evidence" && <EvidenceView result={result}/>}
     </section>}
+    <ReportReviewPanel result={result}/>
   </div>;
+}
+
+const REPORT_SECTION_OPTIONS: Array<{ value: ReportSection; label: string; description: string }> = [
+  { value: "ANSWER", label: "Answer summary", description: "Investigator-facing conclusion and key findings" },
+  { value: "STUDIES", label: "Analysed studies", description: "Study identifiers, status, phase and enrollment" },
+  { value: "CONNECTIONS", label: "Connection explanation", description: "Why the selected studies are related" },
+  { value: "EVIDENCE", label: "Evidence references", description: "Source references supporting the investigation" },
+  { value: "TECHNICAL_DETAILS", label: "Technical execution details", description: "Run ID, MCP transport/tool and generation metadata" },
+];
+
+function buildReportRequest(result: UiResult, sections: ReportSection[], investigatorNote: string) {
+  const sources = (Array.isArray(result.sources) ? result.sources : []).map((source) => ({
+    source_table: source.source_table ?? null,
+    source_key: source.source_key ?? null,
+    source_id: source.source_id ?? null,
+  }));
+  return {
+    answer: {
+      status: result.status ?? "GROUNDED",
+      question: result.question ?? "TrialIQ investigation",
+      answer: result.answer ?? "No narrative summary reported.",
+      graph_response: result.graph_response ?? null,
+      condition_search_response: result.condition_search_response ?? null,
+      entity_search_response: result.entity_search_response ?? null,
+      shared_entity_response: result.shared_entity_response ?? null,
+      related_trial_response: result.related_trial_response ?? result.retrieval?.related_trial_response ?? null,
+      limitations: result.limitations ?? [],
+      sources,
+    },
+    preferences: {
+      sections,
+      investigator_note: investigatorNote.trim() || null,
+    },
+    run_id: result.run_id ?? null,
+    agent_status: result.run_status ?? result.status ?? null,
+    transport: result.retrieval?.transport ?? null,
+    tool_name: result.retrieval?.tool_name ?? null,
+    generation: result.generation ?? null,
+    structured_synthesis: result.structured_synthesis ?? null,
+    human_review_decision: result.human_review_decision ?? null,
+  };
+}
+
+function ReportReviewPanel({ result }: { result: UiResult }) {
+  const [open, setOpen] = useState(false);
+  const [sections, setSections] = useState<ReportSection[]>(["ANSWER", "STUDIES", "CONNECTIONS", "EVIDENCE"]);
+  const [investigatorNote, setInvestigatorNote] = useState("");
+  const [reportDownloading, setReportDownloading] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const related = getRelatedTrialResponse(result);
+  const seedNct = related?.seed_nct_id ?? getEvidence(result)?.nct_id ?? "investigation";
+  const toggleSection = (section: ReportSection) => setSections((current) => current.includes(section) ? current.filter((item) => item !== section) : [...current, section]);
+
+  useEffect(() => {
+    if (!open) return;
+    document.body.classList.add("trialiq-modal-open");
+    return () => document.body.classList.remove("trialiq-modal-open");
+  }, [open]);
+
+  const downloadReport = async () => {
+    setReportError("");
+    setReportDownloading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/query/agent/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildReportRequest(result, sections, investigatorNote)),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const detail = payload?.detail;
+        throw new Error(typeof detail === "string" ? detail : "TrialIQ could not generate the PDF report.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+      anchor.download = filenameMatch?.[1] ?? `trialiq-${String(seedNct).replace(/[^A-Za-z0-9_-]+/g, "-")}-report.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setOpen(false);
+    } catch (error) {
+      setReportError(error instanceof Error ? error.message : "TrialIQ could not generate the PDF report.");
+    } finally {
+      setReportDownloading(false);
+    }
+  };
+
+  return <section className="report-review-panel report-launch-panel">
+    <div><span><strong>Ready to share this investigation?</strong><small>Choose what to include before TrialIQ generates the PDF.</small></span></div>
+    <button type="button" className="secondary-button" onClick={() => setOpen(true)}><Download size={15}/> Prepare report</button>
+    {open && <div className="trialiq-modal-backdrop report-modal-backdrop" role="presentation">
+      <section className="trialiq-modal report-modal-panel" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+        <header className="trialiq-modal-header report-review-heading">
+          <div><span>Human review checkpoint</span><h3 id="report-modal-title">Choose what to include in the report</h3><p>The PDF is generated only from the investigation already shown in TrialIQ. Technical execution details remain optional, and investigator-authored notes stay clearly separated from TrialIQ evidence.</p></div>
+          <button type="button" className="icon-button modal-close-button" onClick={() => setOpen(false)} disabled={reportDownloading} aria-label="Close report preparation"><X size={18}/></button>
+        </header>
+        <div className="hitl-progress report-progress" aria-label="Report preparation progress"><span className="complete"><CheckCircle2 size={14}/> Investigation complete</span><span className="current">2 Review report contents</span><span>3 Generate PDF</span><span className="disabled-step">Email later</span></div>
+        <div className="trialiq-modal-body report-review-body">
+          <div className="report-section-grid">{REPORT_SECTION_OPTIONS.map((option) => <label key={option.value} className={`report-section-option ${sections.includes(option.value) ? "selected" : ""}`}>
+            <input type="checkbox" checked={sections.includes(option.value)} disabled={reportDownloading} onChange={() => toggleSection(option.value)}/><span><strong>{option.label}</strong><small>{option.description}</small></span>
+          </label>)}</div>
+          <label className="report-note-field"><span>Investigator note <small>optional</small></span><textarea rows={4} value={investigatorNote} maxLength={2000} disabled={reportDownloading} onChange={(event) => setInvestigatorNote(event.target.value)} placeholder="Add context that should appear as an investigator-authored note in the PDF report."/></label>
+          {reportError && <div className="graph-error" role="alert"><CircleAlert size={17}/><span>{reportError}</span></div>}
+        </div>
+        <footer className="trialiq-modal-footer report-review-actions"><div><strong>{sections.length} section{sections.length === 1 ? "" : "s"} selected</strong><span>PDF download is available now. Email delivery remains reserved for a later integration.</span></div><div>
+          <button type="button" className="secondary-button" disabled title="Email integration is not configured yet"><Mail size={15}/> Send report</button>
+          <button type="button" className="primary-button" disabled={!sections.length || reportDownloading} onClick={downloadReport}><Download size={15}/> {reportDownloading ? "Preparing PDF…" : "Download PDF"}</button>
+        </div></footer>
+      </section>
+    </div>}
+  </section>;
 }
 
 function ProcessingStatus({ elapsedSeconds, explorer = false, mode = "agentic" }: { elapsedSeconds: number; explorer?: boolean; mode?: ExecutionMode }) {
@@ -1295,7 +1669,7 @@ function AgenticAnswerSummary({ result, response, onStudies, onEvidence, onConne
       </div>
       <div className="answer-hero-metrics">
         <div><strong>{matches.length}</strong><span>studies in this answer</span></div>
-        <div><strong>{connectionIds.size}</strong><span>connection reasons</span></div>
+        <div><strong>{connectionIds.size}</strong><span>shared entities</span></div>
         <div><strong>{comparableTiming}/{matches.length}</strong><span>with timing comparisons</span></div>
         <div><strong>{comparableEnrollment}/{matches.length}</strong><span>with enrollment comparisons</span></div>
       </div>
@@ -1313,7 +1687,7 @@ function AgenticAnswerSummary({ result, response, onStudies, onEvidence, onConne
       <div className="related-preview-list">{topStudies.map((match) => {
         const reasons = (match.connected_via ?? []).slice(0, 3).map((path) => ({ type: connectionReason(path), name: text(path.entity?.name ?? path.entity?.normalized_name, "Shared factor") }));
         return <button type="button" className="related-preview-row" key={match.nct_id} onClick={onStudies}>
-          <div className="related-preview-id"><strong>{match.nct_id}</strong><span>{text(match.trial?.overall_status, "Status not reported")}</span></div>
+          <div className="related-preview-id"><strong>{match.nct_id}</strong><span className={`clinical-status ${clinicalStatusClass(typeof match.trial?.overall_status === "string" ? match.trial.overall_status : null)}`}>{humanStatusLabel(typeof match.trial?.overall_status === "string" ? match.trial.overall_status : null)}</span></div>
           <div className="related-preview-title"><strong>{text(match.trial?.brief_title, "Study title not reported")}</strong><div>{reasons.map((reason, index) => <span key={`${reason.type}-${reason.name}-${index}`}>{reason.type}: {reason.name}</span>)}</div></div>
           <ArrowRight size={16}/>
         </button>;
@@ -1341,29 +1715,102 @@ function formatShortDate(value: unknown) {
   return new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date(timestamp));
 }
 
+function formatExactTimelineDate(value: number | null) {
+  if (value === null) return "Not reported";
+  return new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+}
+
+function timelineTicks(minDate: number, maxDate: number) {
+  const yearMs = 365.25 * 24 * 60 * 60 * 1000;
+  const spanYears = (maxDate - minDate) / yearMs;
+  if (spanYears < 2) {
+    return Array.from({ length: 5 }, (_, index) => {
+      const value = minDate + ((maxDate - minDate) * index) / 4;
+      return { value, label: new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date(value)) };
+    });
+  }
+  const firstYear = new Date(minDate).getFullYear();
+  const lastYear = new Date(maxDate).getFullYear();
+  const rawSpan = Math.max(1, lastYear - firstYear);
+  const step = rawSpan <= 6 ? 1 : rawSpan <= 14 ? 2 : rawSpan <= 28 ? 5 : rawSpan <= 55 ? 10 : 20;
+  const values: number[] = [minDate];
+  const firstAligned = Math.ceil(firstYear / step) * step;
+  for (let year = firstAligned; year <= lastYear; year += step) {
+    const value = new Date(year, 0, 1).getTime();
+    if (value > minDate && value < maxDate) values.push(value);
+  }
+  values.push(maxDate);
+  return values
+    .sort((a, b) => a - b)
+    .filter((value, index, array) => index === 0 || value - array[index - 1] > yearMs * 0.55)
+    .map((value) => ({ value, label: String(new Date(value).getFullYear()) }));
+}
+
+function focusedTimelineDomain(dates: number[]) {
+  const sorted = [...dates].sort((a, b) => a - b);
+  const fullMin = sorted[0];
+  const fullMax = sorted[sorted.length - 1];
+  if (sorted.length < 3) return { fullMin, fullMax, focusMin: fullMin, focusMax: fullMax, hasOutlier: false };
+  const yearMs = 365.25 * 24 * 60 * 60 * 1000;
+  const fullSpan = Math.max(1, fullMax - fullMin);
+  let focusMin = fullMin;
+  let focusMax = fullMax;
+  let hasOutlier = false;
+  const earliestGap = sorted[1] - fullMin;
+  const latestGap = fullMax - sorted[sorted.length - 2];
+  if (fullSpan > yearMs * 30 && earliestGap > yearMs * 12 && earliestGap / fullSpan > 0.35) {
+    focusMin = sorted[1];
+    hasOutlier = true;
+  }
+  if (fullSpan > yearMs * 30 && latestGap > yearMs * 12 && latestGap / fullSpan > 0.35) {
+    focusMax = sorted[sorted.length - 2];
+    hasOutlier = true;
+  }
+  if (focusMax <= focusMin) return { fullMin, fullMax, focusMin: fullMin, focusMax: fullMax, hasOutlier: false };
+  return { fullMin, fullMax, focusMin, focusMax, hasOutlier };
+}
+
 function StudyTimeline({ response }: { response: RelatedTrialResponse }) {
+  const [showFullRange, setShowFullRange] = useState(false);
   const anchor = response.anchor_trial ?? {};
   const rows = [
     { nctId: text(response.seed_nct_id), title: text(anchor.brief_title, "Study of interest"), start: parseTrialDate(anchor.start_date), end: parseTrialDate(anchor.completion_date), enrollment: anchor.enrollment, reference: true },
     ...(response.matches ?? []).map((match) => ({ nctId: match.nct_id, title: text(match.trial?.brief_title, "Related study"), start: parseTrialDate(match.trial?.start_date), end: parseTrialDate(match.trial?.completion_date), enrollment: match.trial?.enrollment, reference: false })),
   ].filter((row) => row.start !== null || row.end !== null);
   if (!rows.length) return null;
+
   const dates = rows.flatMap((row) => [row.start, row.end].filter((value): value is number => value !== null));
-  const minDate = Math.min(...dates);
-  const maxDate = Math.max(...dates);
+  const domain = focusedTimelineDomain(dates);
+  const coreMin = showFullRange ? domain.fullMin : domain.focusMin;
+  const coreMax = showFullRange ? domain.fullMax : domain.focusMax;
+  const coreSpan = Math.max(1, coreMax - coreMin);
+  const padding = Math.max(coreSpan * 0.025, 45 * 24 * 60 * 60 * 1000);
+  const minDate = coreMin - padding;
+  const maxDate = coreMax + padding;
   const span = Math.max(1, maxDate - minDate);
+  const ticks = timelineTicks(coreMin, coreMax);
+  const rangeLabel = `${new Date(coreMin).getFullYear()}–${new Date(coreMax).getFullYear()}`;
+  const clampPercent = (value: number) => Math.max(0, Math.min(100, ((value - minDate) / span) * 100));
+
   return <section className="study-timeline-card">
-    <div className="study-workspace-heading"><div><span>Timeline</span><h3>Study timing at a glance</h3><p>Lengths and positions are relative to the dates reported in the loaded evidence.</p></div></div>
+    <div className="study-workspace-heading timeline-heading"><div><span>Timeline</span><h3>Study timing at a glance</h3><p>{rangeLabel} · {rows.length} studies shown · exact dates are available on hover.</p></div>{domain.hasOutlier && <div className="timeline-view-toggle" role="group" aria-label="Timeline range"><button type="button" className={!showFullRange ? "active" : ""} onClick={() => setShowFullRange(false)}>Focused</button><button type="button" className={showFullRange ? "active" : ""} onClick={() => setShowFullRange(true)}>Full range</button></div>}</div>
+    {domain.hasOutlier && !showFullRange && <div className="timeline-outlier-note"><Info size={15}/><span>An unusually distant reported date is outside the focused visual scale. No source value is changed; use <strong>Full range</strong> to include every reported date.</span></div>}
     <div className="visual-timeline-scroll">
-      <div className="visual-timeline-head"><span>Study</span><span>{new Date(minDate).getFullYear()}</span><span>{new Date(maxDate).getFullYear()}</span><span>Enrollment</span></div>
+      <div className="visual-timeline-head"><span>Study</span><div className="visual-timeline-axis" aria-label={`Timeline ${rangeLabel}`}>{ticks.map((tick) => <span key={`${tick.value}-${tick.label}`} style={{ left: `${clampPercent(tick.value)}%` }}>{tick.label}</span>)}</div><span>Enrollment</span></div>
       {rows.map((row) => {
-        const start = row.start ?? row.end ?? minDate;
-        const end = row.end ?? row.start ?? maxDate;
-        const left = ((start - minDate) / span) * 100;
-        const width = Math.max(1.8, ((Math.max(end, start) - start) / span) * 100);
-        return <div className={`visual-timeline-row ${row.reference ? "reference" : ""}`} key={`visual-${row.nctId}`}>
-          <div className="visual-timeline-label"><strong>{row.nctId}</strong><span>{row.reference ? "Study of interest" : row.title}</span></div>
-          <div className="visual-timeline-track" title={`${row.nctId}: ${formatShortDate(row.start ? new Date(row.start).toISOString() : null)} – ${formatShortDate(row.end ? new Date(row.end).toISOString() : null)}`}><span className="visual-timeline-bar" style={{ left: `${left}%`, width: `${width}%` }}/></div>
+        const rawStart = row.start ?? row.end ?? coreMin;
+        const rawEnd = row.end ?? row.start ?? coreMax;
+        const start = Math.min(rawStart, rawEnd);
+        const end = Math.max(rawStart, rawEnd);
+        const left = clampPercent(start);
+        const right = clampPercent(end);
+        const width = Math.max(1.4, right - left);
+        const clipped = start < minDate || end > maxDate;
+        const durationDays = Math.max(0, Math.round((end - start) / (24 * 60 * 60 * 1000)));
+        const tooltip = `${row.nctId} · Start ${formatExactTimelineDate(row.start)} · Completion ${formatExactTimelineDate(row.end)}${row.start !== null && row.end !== null ? ` · ${durationDays.toLocaleString()} days` : ""}${clipped ? " · extends beyond focused range" : ""}`;
+        return <div className={`visual-timeline-row ${row.reference ? "reference" : ""} ${clipped ? "timeline-row-clipped" : ""}`} key={`visual-${row.nctId}`}>
+          <div className="visual-timeline-label"><strong>{row.nctId}</strong><span title={row.title}>{row.reference ? "Study of interest · reference" : row.title}</span></div>
+          <div className="visual-timeline-track" title={tooltip} aria-label={tooltip}>{ticks.map((tick) => <span className="visual-timeline-gridline" aria-hidden="true" key={`line-${row.nctId}-${tick.value}`} style={{ left: `${clampPercent(tick.value)}%` }}/>) }<span className="visual-timeline-bar" style={{ left: `${left}%`, width: `${width}%` }}/>{row.start !== null && <span className="visual-timeline-endpoint start" style={{ left: `${clampPercent(row.start)}%` }}/>} {row.end !== null && <span className="visual-timeline-endpoint end" style={{ left: `${clampPercent(row.end)}%` }}/>}</div>
           <div className="visual-timeline-enrollment">{row.enrollment === null || row.enrollment === undefined ? "—" : Number(row.enrollment).toLocaleString()}</div>
         </div>;
       })}
@@ -1409,6 +1856,12 @@ function AgenticRelatedInsights({ result, response, onEvidence }: { result: UiRe
     setEnrollmentFilter("ALL");
   }, [response.seed_nct_id, matchKey]);
 
+  useEffect(() => {
+    if (!comparisonOpen) return;
+    document.body.classList.add("trialiq-modal-open");
+    return () => document.body.classList.remove("trialiq-modal-open");
+  }, [comparisonOpen]);
+
   const relationshipLabel = (value: string | undefined) => {
     if (value === "HAS_CONDITION") return "Condition";
     if (value === "HAS_INTERVENTION") return "Intervention";
@@ -1427,7 +1880,8 @@ function AgenticRelatedInsights({ result, response, onEvidence }: { result: UiRe
       .replace(/the study of interest(?!\s*\()/gi, `the study of interest (${studyNctId})`)
       .replace(/study of interest(?!\s*\()/gi, `study of interest (${studyNctId})`);
   };
-  const humanStatus = (value: string) => value.split("_").map((part) => part.charAt(0) + part.slice(1).toLowerCase()).join(" ");
+  const compactDelta = (value: number | null | undefined, unit: string) => value === null || value === undefined ? "—" : value === 0 ? `0 ${unit}` : `${value > 0 ? "+" : "−"}${Math.abs(value).toLocaleString()} ${unit}`;
+  const humanStatus = humanStatusLabel;
   const resetComparisonSelection = () => {
     setSelectedCompareIds([]);
     setComparisonOpen(false);
@@ -1549,14 +2003,6 @@ function AgenticRelatedInsights({ result, response, onEvidence }: { result: UiRe
   const selectedMatches = selectedCompareIds
     .map((nctId) => matches.find((match) => match.nct_id === nctId))
     .filter((match): match is RelatedTrialMatch => Boolean(match));
-  const selectedEnrollmentStandout = pickLargestAbsolute(selectedMatches, (match) => match.metrics?.enrollment_difference);
-  const selectedDurationStandout = pickLargestAbsolute(selectedMatches, (match) => match.metrics?.duration_difference_days);
-  const selectedEnrollmentSummary = selectedEnrollmentStandout && typeof selectedEnrollmentStandout.metrics?.enrollment_difference === "number"
-    ? `${selectedEnrollmentStandout.nct_id} · ${selectedEnrollmentStandout.metrics.enrollment_difference === 0 ? "same enrollment" : `${Math.abs(selectedEnrollmentStandout.metrics.enrollment_difference)} ${selectedEnrollmentStandout.metrics.enrollment_difference > 0 ? "more" : "fewer"} participants`}`
-    : "Not available";
-  const selectedDurationSummary = selectedDurationStandout && typeof selectedDurationStandout.metrics?.duration_difference_days === "number"
-    ? `${selectedDurationStandout.nct_id} · ${selectedDurationStandout.metrics.duration_difference_days === 0 ? "same duration" : `${Math.abs(selectedDurationStandout.metrics.duration_difference_days)} days ${selectedDurationStandout.metrics.duration_difference_days > 0 ? "longer" : "shorter"}`}`
-    : "Not available";
   const anchorDuration = selectedMatches
     .map((match) => match.metrics?.anchor_duration_days)
     .find((value): value is number => typeof value === "number")
@@ -1621,92 +2067,80 @@ function AgenticRelatedInsights({ result, response, onEvidence }: { result: UiRe
       </div>
     </section>}
 
-    <section className="agent-insight-card related-study-refinement-card">
+    <section className="related-study-refinement-card related-study-refinement-toolbar">
       <div className="block-heading refinement-heading">
-        <div><h3>Refine related studies</h3><span>Focus the comparison and evidence view without changing the TrialIQ conclusion above.</span></div>
-        <strong>{visibleMatches.length} of {matches.length} analysed studies shown</strong>
+        <div><h3>Refine studies</h3><span>Filter the included investigation set without changing the TrialIQ conclusion.</span></div>
+        <strong>{visibleMatches.length} of {matches.length} included studies shown</strong>
       </div>
       <div className="related-study-filter-grid">
         {availableStatuses.length > 1 && <label><span>Status</span><select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); resetComparisonSelection(); }}><option value="ALL">All statuses</option>{availableStatuses.map((status) => <option key={status} value={status}>{humanStatus(status)}</option>)}</select></label>}
         {connectionOptions.length > 1 && <label><span>Connection</span><select value={connectionFilter} onChange={(event) => { setConnectionFilter(event.target.value); resetComparisonSelection(); }}><option value="ALL">All connection types</option>{connectionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>}
-        {completionFilterAvailable && <label><span>Completion timing vs {studyNctId}</span><select value={completionFilter} onChange={(event) => { setCompletionFilter(event.target.value); resetComparisonSelection(); }}><option value="ALL">Any timing</option><option value="BEFORE">Before {studyNctId}</option><option value="AFTER">After {studyNctId}</option><option value="SAME">Same date as {studyNctId}</option></select></label>}
-        {enrollmentFilterAvailable && <label><span>Enrollment vs {studyNctId}</span><select value={enrollmentFilter} onChange={(event) => { setEnrollmentFilter(event.target.value); resetComparisonSelection(); }}><option value="ALL">Any enrollment</option><option value="MORE">Higher than {studyNctId}</option><option value="FEWER">Lower than {studyNctId}</option><option value="SAME">Same as {studyNctId}</option></select></label>}
+        {completionFilterAvailable && <label><span>Completion timing vs reference</span><select value={completionFilter} onChange={(event) => { setCompletionFilter(event.target.value); resetComparisonSelection(); }}><option value="ALL">Any timing</option><option value="BEFORE">Before reference</option><option value="AFTER">After reference</option><option value="SAME">Same date</option></select></label>}
+        {enrollmentFilterAvailable && <label><span>Enrollment vs reference</span><select value={enrollmentFilter} onChange={(event) => { setEnrollmentFilter(event.target.value); resetComparisonSelection(); }}><option value="ALL">Any enrollment</option><option value="MORE">Higher than reference</option><option value="FEWER">Lower than reference</option><option value="SAME">Same enrollment</option></select></label>}
       </div>
       {filtersActive && <button type="button" className="refinement-clear-button" onClick={() => { setStatusFilter("ALL"); setConnectionFilter("ALL"); setCompletionFilter("ALL"); setEnrollmentFilter("ALL"); resetComparisonSelection(); }}>Clear filters</button>}
     </section>
 
-    <section className="agent-insight-card">
+    <section className="agent-insight-card comparison-primary-section">
       <div className="block-heading comparison-heading">
-        <div><h3>Study comparison</h3><span>Each related study is compared with the study of interest ({studyNctId}).</span></div>
-        <small>Select up to 3 related studies. {studyNctId} is always included as the reference study.</small>
+        <div><h3>Study comparison</h3><span>The reference study is pinned; choose up to 3 included studies for a side-by-side comparison.</span></div>
+        <small>{result.human_review_decision ? `${result.human_review_decision.discovered_candidate_count} discovered · ${result.human_review_decision.selected_candidate_count} included in investigation` : `${matches.length} included in investigation`}</small>
       </div>
       {visibleMatches.length ? <div className="comparison-table-wrap">
         <table className="comparison-table">
-          <thead><tr><th className="compare-select-column">Compare</th><th>Related study</th><th>Shared connection</th>{hasCompletionComparison && <th>Completion timing</th>}{hasDurationComparison && <th>Duration</th>}{hasEnrollmentComparison && <th>Enrollment</th>}</tr></thead>
+          <thead><tr><th>Related study</th><th>Status</th><th>Shared connection</th>{hasCompletionComparison && <th className="numeric-column">Completion Δ</th>}{hasDurationComparison && <th className="numeric-column">Duration Δ</th>}{hasEnrollmentComparison && <th className="numeric-column">Enrollment Δ</th>}</tr></thead>
           <tbody>{visibleMatches.map((match) => {
             const selected = selectedCompareIds.includes(match.nct_id);
             return <tr key={match.nct_id} className={selected ? "comparison-row-selected" : ""}>
-              <td className="compare-select-cell"><input type="checkbox" checked={selected} disabled={!selected && comparisonLimitReached} aria-label={`Compare ${match.nct_id} with ${studyNctId}`} onChange={() => toggleCompare(match.nct_id)}/></td>
-              <td><strong>{match.nct_id}</strong><span>{text(match.trial?.brief_title, "Title unavailable")}</span></td>
+              <td><label className="comparison-study-selector"><input type="checkbox" checked={selected} disabled={!selected && comparisonLimitReached} aria-label={`Select ${match.nct_id} for comparison`} onChange={() => toggleCompare(match.nct_id)}/><span><strong>{match.nct_id}</strong><small title={text(match.trial?.brief_title, "Title unavailable")}>{text(match.trial?.brief_title, "Title unavailable")}</small></span></label></td>
+              <td><span className={`clinical-status ${clinicalStatusClass(typeof match.trial?.overall_status === "string" ? match.trial.overall_status : null)}`}>{humanStatusLabel(typeof match.trial?.overall_status === "string" ? match.trial.overall_status : null)}</span></td>
               <td><div className="comparison-connection-pills">
                 {!!match.metrics?.shared_condition_count && <span>{match.metrics.shared_condition_count} condition{match.metrics.shared_condition_count === 1 ? "" : "s"}</span>}
                 {!!match.metrics?.shared_intervention_count && <span>{match.metrics.shared_intervention_count} intervention{match.metrics.shared_intervention_count === 1 ? "" : "s"}</span>}
                 {!!match.metrics?.shared_sponsor_count && <span>{match.metrics.shared_sponsor_count} sponsor{match.metrics.shared_sponsor_count === 1 ? "" : "s"}</span>}
                 <span>{match.metrics?.evidence_path_count ?? match.connected_via.length} supporting link{(match.metrics?.evidence_path_count ?? match.connected_via.length) === 1 ? "" : "s"}</span>
               </div></td>
-              {hasCompletionComparison && <td>{referencedComparison(match.metrics?.completion_date_comparison)}</td>}
-              {hasDurationComparison && <td>{referencedComparison(match.metrics?.duration_comparison)}</td>}
-              {hasEnrollmentComparison && <td>{referencedComparison(match.metrics?.enrollment_comparison)}</td>}
+              {hasCompletionComparison && <td className="numeric-column"><span className="comparison-delta" title={referencedComparison(match.metrics?.completion_date_comparison)}>{compactDelta(match.metrics?.completion_date_difference_days, "days")}</span></td>}
+              {hasDurationComparison && <td className="numeric-column"><span className="comparison-delta" title={referencedComparison(match.metrics?.duration_comparison)}>{compactDelta(match.metrics?.duration_difference_days, "days")}</span></td>}
+              {hasEnrollmentComparison && <td className="numeric-column"><span className="comparison-delta" title={referencedComparison(match.metrics?.enrollment_comparison)}>{compactDelta(match.metrics?.enrollment_difference, "participants")}</span></td>}
             </tr>;
           })}</tbody>
         </table>
       </div> : <div className="refinement-zero-state"><strong>No related studies match the current filters.</strong><span>Clear or change a filter to bring studies back into the comparison view.</span></div>}
       <div className="compare-selection-bar">
-        <div><strong>{selectedCompareIds.length} related stud{selectedCompareIds.length === 1 ? "y" : "ies"} selected</strong><span>{comparisonLimitReached ? `Maximum reached · ${studyNctId} + 3 related studies` : `${studyNctId} will be included automatically as the study of interest`}</span></div>
+        <div><strong>{selectedCompareIds.length} selected for comparison</strong><span>{comparisonLimitReached ? "Maximum of 3 related studies reached" : "Reference study is included automatically"}</span></div>
         <div>
           {!!selectedCompareIds.length && <button type="button" className="comparison-clear-button" onClick={() => { setSelectedCompareIds([]); setComparisonOpen(false); }}>Clear</button>}
-          <button type="button" className="secondary-button comparison-open-button" disabled={selectedCompareIds.length < 1} onClick={() => setComparisonOpen(true)}>Compare with {studyNctId} <ArrowRight size={15}/></button>
+          <button type="button" className="secondary-button comparison-open-button" disabled={selectedCompareIds.length < 1} onClick={() => setComparisonOpen(true)}>Compare {selectedCompareIds.length || "selected"} stud{selectedCompareIds.length === 1 ? "y" : "ies"} <ArrowRight size={15}/></button>
         </div>
       </div>
     </section>
 
-    {comparisonOpen && selectedMatches.length >= 1 && <section className="agent-insight-card selected-study-comparison-card">
-      <div className="block-heading selected-comparison-heading">
-        <div><h3>Selected study comparison</h3><span>Study of interest ({studyNctId}) is the fixed reference for every selected study.</span></div>
-        <button type="button" className="comparison-close-button" onClick={() => setComparisonOpen(false)}>Close</button>
+    {comparisonOpen && selectedMatches.length >= 1 && <div className="trialiq-modal-backdrop comparison-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComparisonOpen(false); }}><section className="trialiq-modal comparison-modal-panel" role="dialog" aria-modal="true" aria-labelledby="comparison-modal-title" onMouseDown={(event) => event.stopPropagation()}>
+      <header className="trialiq-modal-header comparison-modal-header">
+        <div><span>Study comparison</span><h2 id="comparison-modal-title">Compare selected studies</h2><p>Reference: <strong>{studyNctId}</strong> · {selectedMatches.length} related stud{selectedMatches.length === 1 ? "y" : "ies"}. Values are aligned by measure so differences can be scanned horizontally.</p></div>
+        <button type="button" className="icon-button modal-close-button" onClick={() => setComparisonOpen(false)} aria-label="Close study comparison"><X size={18}/></button>
+      </header>
+      <div className="trialiq-modal-body comparison-modal-body">
+        <div className="comparison-matrix-wrap">
+          <table className="comparison-matrix">
+            <thead><tr><th className="comparison-attribute-column">Measure</th><th className="comparison-reference-column"><span>Reference</span><strong>{studyNctId}</strong><small title={text(anchor.brief_title, "Title unavailable")}>{text(anchor.brief_title, "Title unavailable")}</small></th>{selectedMatches.map((match) => <th key={`head-${match.nct_id}`}><span>Related study</span><strong>{match.nct_id}</strong><small title={text(match.trial?.brief_title, "Title unavailable")}>{text(match.trial?.brief_title, "Title unavailable")}</small></th>)}</tr></thead>
+            <tbody>
+              <tr><th>Status</th><td><span className={`clinical-status ${clinicalStatusClass(typeof anchor.overall_status === "string" ? anchor.overall_status : null)}`}>{humanStatusLabel(typeof anchor.overall_status === "string" ? anchor.overall_status : null)}</span></td>{selectedMatches.map((match) => <td key={`status-${match.nct_id}`}><span className={`clinical-status ${clinicalStatusClass(typeof match.trial?.overall_status === "string" ? match.trial.overall_status : null)}`}>{humanStatusLabel(typeof match.trial?.overall_status === "string" ? match.trial.overall_status : null)}</span></td>)}</tr>
+              <tr><th>Shared factors</th><td>—</td>{selectedMatches.map((match) => <td className="numeric-column" key={`shared-${match.nct_id}`}>{match.metrics?.total_shared_entity_count ?? match.connected_via.length}</td>)}</tr>
+              <tr><th>Start date</th><td>{loadedValue(anchor.start_date)}</td>{selectedMatches.map((match) => <td key={`start-${match.nct_id}`}>{loadedValue(match.trial?.start_date)}</td>)}</tr>
+              <tr><th>Completion date</th><td>{loadedValue(anchor.completion_date)}</td>{selectedMatches.map((match) => <td key={`completion-${match.nct_id}`}>{loadedValue(match.trial?.completion_date)}</td>)}</tr>
+              <tr><th>Enrollment</th><td className="numeric-column">{loadedValue(anchor.enrollment)}</td>{selectedMatches.map((match) => <td className="numeric-column" key={`enrollment-${match.nct_id}`}>{loadedValue(match.metrics?.related_enrollment ?? match.trial?.enrollment)}</td>)}</tr>
+              <tr><th>Study duration</th><td className="numeric-column">{anchorDuration === undefined ? "—" : `${anchorDuration.toLocaleString()} d`}</td>{selectedMatches.map((match) => <td className="numeric-column" key={`duration-${match.nct_id}`}>{match.metrics?.related_duration_days === null || match.metrics?.related_duration_days === undefined ? "—" : `${match.metrics.related_duration_days.toLocaleString()} d`}</td>)}</tr>
+              <tr><th>Completion Δ</th><td>Reference</td>{selectedMatches.map((match) => <td className="numeric-column" key={`completion-delta-${match.nct_id}`}><span className="comparison-delta" title={referencedComparison(match.metrics?.completion_date_comparison)}>{compactDelta(match.metrics?.completion_date_difference_days, "days")}</span></td>)}</tr>
+              <tr><th>Duration Δ</th><td>Reference</td>{selectedMatches.map((match) => <td className="numeric-column" key={`duration-delta-${match.nct_id}`}><span className="comparison-delta" title={referencedComparison(match.metrics?.duration_comparison)}>{compactDelta(match.metrics?.duration_difference_days, "days")}</span></td>)}</tr>
+              <tr><th>Enrollment Δ</th><td>Reference</td>{selectedMatches.map((match) => <td className="numeric-column" key={`enrollment-delta-${match.nct_id}`}><span className="comparison-delta" title={referencedComparison(match.metrics?.enrollment_comparison)}>{compactDelta(match.metrics?.enrollment_difference, "participants")}</span></td>)}</tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className="selected-comparison-metrics">
-        <Metric label="Studies compared" value={`${selectedMatches.length + 1} · ${studyNctId} + ${selectedMatches.length} related`}/>
-        <Metric label={`Largest enrollment difference vs ${studyNctId}`} value={selectedEnrollmentSummary}/>
-        <Metric label={`Largest duration difference vs ${studyNctId}`} value={selectedDurationSummary}/>
-      </div>
-      <div className="selected-comparison-grid">
-        <article className="selected-study-card reference-study-card">
-          <div className="selected-study-card-head"><span>Study of interest · reference</span><strong>{studyNctId}</strong><p>{text(anchor.brief_title, "Title unavailable")}</p></div>
-          <dl>
-            <div><dt>Status</dt><dd>{loadedValue(anchor.overall_status)}</dd></div>
-            <div><dt>Start date</dt><dd>{loadedValue(anchor.start_date)}</dd></div>
-            <div><dt>Completion date</dt><dd>{loadedValue(anchor.completion_date)}</dd></div>
-            <div><dt>Enrollment</dt><dd>{loadedValue(anchor.enrollment)}</dd></div>
-            <div><dt>Study duration</dt><dd>{anchorDuration === undefined ? "Not reported in loaded evidence" : `${anchorDuration} days`}</dd></div>
-            <div><dt>Role in comparison</dt><dd>Reference study for all differences shown in the related-study columns.</dd></div>
-          </dl>
-        </article>
-        {selectedMatches.map((match) => <article className="selected-study-card" key={`selected-${match.nct_id}`}>
-          <div className="selected-study-card-head"><span>Related study · compared with {studyNctId}</span><strong>{match.nct_id}</strong><p>{text(match.trial?.brief_title, "Title unavailable")}</p></div>
-          <dl>
-            <div><dt>Status</dt><dd>{loadedValue(match.trial?.overall_status)}</dd></div>
-            <div><dt>Shared factors with {studyNctId}</dt><dd>{loadedValue(match.metrics?.total_shared_entity_count ?? match.connected_via.length)}</dd></div>
-            <div><dt>Start date</dt><dd>{loadedValue(match.trial?.start_date)}</dd></div>
-            <div><dt>Completion date</dt><dd>{loadedValue(match.trial?.completion_date)}</dd></div>
-            <div><dt>Enrollment</dt><dd>{loadedValue(match.metrics?.related_enrollment ?? match.trial?.enrollment)}</dd></div>
-            <div><dt>Study duration</dt><dd>{match.metrics?.related_duration_days === null || match.metrics?.related_duration_days === undefined ? "Not reported in loaded evidence" : `${match.metrics.related_duration_days} days`}</dd></div>
-            <div><dt>Completion vs {studyNctId}</dt><dd>{referencedComparison(match.metrics?.completion_date_comparison)}</dd></div>
-            <div><dt>Enrollment vs {studyNctId}</dt><dd>{referencedComparison(match.metrics?.enrollment_comparison)}</dd></div>
-          </dl>
-        </article>)}
-      </div>
-    </section>}
+      <footer className="trialiq-modal-footer comparison-modal-footer"><div><strong>{selectedMatches.length + 1} studies compared</strong><span>Hover compact deltas in the underlying table for the full source-backed comparison wording.</span></div><button type="button" className="secondary-button" onClick={() => setComparisonOpen(false)}>Close comparison</button></footer>
+    </section></div>}
 
     <details className="agent-insight-card agent-collapsible-card">
       <summary className="agent-collapsible-summary">
@@ -1731,7 +2165,7 @@ function AgenticRelatedInsights({ result, response, onEvidence }: { result: UiRe
 
     {hasAnyTimelineEvidence ? <details className="agent-insight-card agent-collapsible-card">
       <summary className="agent-collapsible-summary">
-        <div><h3>Timeline & enrollment</h3><span>Study of interest ({studyNctId}) is the reference row</span></div>
+        <div><h3>Timeline & enrollment</h3><span>Reference study is pinned above</span></div>
         <div className="agent-collapsible-meta"><strong>{visibleMatches.length + 1}</strong><span>rows</span><ChevronDown size={16}/></div>
       </summary>
       <div className="agent-collapsible-body">
@@ -1739,7 +2173,7 @@ function AgenticRelatedInsights({ result, response, onEvidence }: { result: UiRe
           <table className="timeline-table">
             <thead><tr><th>Trial</th><th>Start</th><th>Completion</th><th>Enrollment</th></tr></thead>
             <tbody>
-              <tr className="anchor-row"><td><strong>{studyNctId}</strong><span>Study of interest · reference</span></td><td>{loadedValue(anchor.start_date)}</td><td>{loadedValue(anchor.completion_date)}</td><td>{loadedValue(anchor.enrollment)}</td></tr>
+              <tr className="anchor-row"><td><strong>{studyNctId}</strong><span>Reference</span></td><td>{loadedValue(anchor.start_date)}</td><td>{loadedValue(anchor.completion_date)}</td><td>{loadedValue(anchor.enrollment)}</td></tr>
               {visibleMatches.map((match) => <tr key={`timeline-${match.nct_id}`}><td><strong>{match.nct_id}</strong><span>{text(match.trial?.overall_status)}</span></td><td>{loadedValue(match.trial?.start_date)}</td><td>{loadedValue(match.trial?.completion_date)}</td><td>{loadedValue(match.trial?.enrollment)}</td></tr>)}
             </tbody>
           </table>
@@ -1944,10 +2378,35 @@ function truncateGraphLabel(value: string, max = 26) {
   return value.length <= max ? value : `${value.slice(0, Math.max(1, max - 1))}…`;
 }
 
+function splitGraphLabel(value: string, maxPerLine = 24) {
+  const normalized = value.trim();
+  if (normalized.length <= maxPerLine) return [normalized];
+  const words = normalized.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= maxPerLine || !current) current = candidate;
+    else { lines.push(current); current = word; }
+    if (lines.length === 1 && current.length > maxPerLine) break;
+  }
+  if (current && lines.length < 2) lines.push(current);
+  const visibleLines = lines.slice(0, 2);
+  if (visibleLines.length === 2 && visibleLines.join(" ").length < normalized.length) {
+    visibleLines[1] = truncateGraphLabel(visibleLines[1], maxPerLine);
+  }
+  return visibleLines;
+}
+
 function graphRelationshipLabel(value: GraphRelationship) {
   if (value === "HAS_CONDITION") return "Condition";
   if (value === "HAS_INTERVENTION") return "Intervention";
   return "Sponsor";
+}
+
+function graphConnectionDepthLabel(depth: number) {
+  if (depth <= 0) return "Study of interest";
+  return depth === 1 ? "Direct connection" : "2-step connection";
 }
 
 function buildGraphLayout(nodes: GraphViewNode[], maxHops: number) {
@@ -1957,35 +2416,118 @@ function buildGraphLayout(nodes: GraphViewNode[], maxHops: number) {
     grouped.set(column, [...(grouped.get(column) ?? []), node]);
   }
   for (const group of grouped.values()) group.sort((a, b) => a.label.localeCompare(b.label));
-  const rowCount = Math.max(1, ...Array.from(grouped.values()).map((group) => group.length));
-  const height = Math.max(420, rowCount * 96 + 110);
-  const width = maxHops === 2 ? 1180 : 720;
+
+  const maxRowsPerLane = 6;
+  const visibleRows = Math.max(1, ...Array.from(grouped.values()).map((group) => Math.min(maxRowsPerLane, group.length)));
+  const height = Math.max(440, visibleRows * 92 + 120);
   const positions = new Map<string, { x: number; y: number }>();
-  for (const [column, group] of grouped) {
-    const x = 105 + column * 230;
+  let cursorX = 110;
+
+  for (const column of Array.from(grouped.keys()).sort((a, b) => a - b)) {
+    const group = grouped.get(column) ?? [];
+    const laneCount = Math.max(1, Math.ceil(group.length / maxRowsPerLane));
     group.forEach((node, index) => {
-      const y = ((index + 1) / (group.length + 1)) * height;
+      const lane = Math.floor(index / maxRowsPerLane);
+      const row = index % maxRowsPerLane;
+      const rowsInLane = Math.min(maxRowsPerLane, group.length - lane * maxRowsPerLane);
+      const x = cursorX + lane * 188;
+      const y = ((row + 1) / (rowsInLane + 1)) * height;
       positions.set(node.id, { x, y });
     });
+    cursorX += laneCount * 188 + 86;
   }
+
+  const width = Math.max(maxHops === 2 ? 1180 : 760, cursorX + 30);
   return { positions, width, height };
 }
 
-function GraphNodeShape({ node, x, y, selected, onSelect }: { node: GraphViewNode; x: number; y: number; selected: boolean; onSelect: () => void }) {
+function findGraphPath(seedId: string, targetId: string, edges: GraphViewEdge[]) {
+  if (!seedId || !targetId || seedId === targetId) return null;
+  const adjacency = new Map<string, Array<{ nodeId: string; edgeId: string }>>();
+  for (const edge of edges) {
+    adjacency.set(edge.source, [...(adjacency.get(edge.source) ?? []), { nodeId: edge.target, edgeId: edge.id }]);
+    adjacency.set(edge.target, [...(adjacency.get(edge.target) ?? []), { nodeId: edge.source, edgeId: edge.id }]);
+  }
+
+  const previous = new Map<string, { nodeId: string; edgeId: string } | null>([[seedId, null]]);
+  const queue = [seedId];
+  for (let index = 0; index < queue.length && !previous.has(targetId); index += 1) {
+    const current = queue[index];
+    for (const next of adjacency.get(current) ?? []) {
+      if (previous.has(next.nodeId)) continue;
+      previous.set(next.nodeId, { nodeId: current, edgeId: next.edgeId });
+      queue.push(next.nodeId);
+      if (next.nodeId === targetId) break;
+    }
+  }
+  if (!previous.has(targetId)) return null;
+
+  const nodeIds = [targetId];
+  const edgeIds: string[] = [];
+  let cursor = targetId;
+  while (cursor !== seedId) {
+    const step = previous.get(cursor);
+    if (!step) return null;
+    edgeIds.unshift(step.edgeId);
+    cursor = step.nodeId;
+    nodeIds.unshift(cursor);
+  }
+  return { nodeIds, edgeIds };
+}
+
+function buildGraphConnectionRows(nodes: GraphViewNode[], edges: GraphViewEdge[], seedId: string): GraphConnectionRow[] {
+  if (!seedId) return [];
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const edgeById = new Map(edges.map((edge) => [edge.id, edge]));
+  const rows: GraphConnectionRow[] = [];
+
+  for (const study of nodes.filter((node) => node.type === "trial" && node.id !== seedId)) {
+    const path = findGraphPath(seedId, study.id, edges);
+    if (!path) continue;
+    const pathEdges = path.edgeIds.map((id) => edgeById.get(id)).filter((edge): edge is GraphViewEdge => Boolean(edge));
+    const whyConnected = Array.from(new Set(pathEdges.map((edge) => graphRelationshipLabel(edge.relationship)))).join(" + ") || "Shared clinical entity";
+    const sharedEntity = Array.from(new Set(
+      path.nodeIds
+        .map((id) => nodeById.get(id))
+        .filter((node): node is GraphViewNode => Boolean(node && node.type !== "trial"))
+        .map((node) => node.label),
+    )).join(" → ") || "Shared entity";
+    rows.push({
+      studyId: study.id,
+      studyLabel: study.label,
+      whyConnected,
+      sharedEntity,
+      depth: study.hop,
+      depthLabel: graphConnectionDepthLabel(study.hop),
+      pathNodeIds: path.nodeIds,
+      pathEdgeIds: path.edgeIds,
+    });
+  }
+
+  return rows.sort((a, b) => a.depth - b.depth || a.studyLabel.localeCompare(b.studyLabel));
+}
+
+function GraphNodeShape({ node, x, y, selected, onPath, muted, onSelect }: { node: GraphViewNode; x: number; y: number; selected: boolean; onPath: boolean; muted: boolean; onSelect: () => void }) {
   const activate = (event: KeyboardEvent<SVGGElement>) => {
     if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(); }
   };
-  const label = truncateGraphLabel(node.label, node.type === "trial" ? 18 : 24);
-  const typeLabel = node.type === "trial" ? `STUDY · STEP ${node.hop}` : `${node.type.toUpperCase()} · STEP ${node.hop}`;
-  return <g className={`graphrag-node graph-node-${node.type} ${selected ? "selected" : ""}`} role="button" tabIndex={0}
-    aria-label={`${node.type} ${node.label}, step ${node.hop}`} onClick={onSelect} onKeyDown={activate}>
+  const labelLines = splitGraphLabel(node.label, node.type === "trial" ? 20 : 23);
+  const typeLabel = node.type === "trial"
+    ? node.hop === 0 ? "STUDY OF INTEREST" : `CONNECTED STUDY · ${node.hop === 1 ? "DIRECT" : "2-STEP"}`
+    : `${collectionLabel(node.type).toUpperCase()} · ${node.hop === 1 ? "DIRECT" : "2-STEP"}`;
+  const nodeWidth = node.type === "trial" ? 176 : 166;
+  const nodeHeight = node.type === "trial" ? 76 : 72;
+  return <g className={`graphrag-node graph-node-${node.type} ${selected ? "selected" : ""} ${onPath ? "is-path" : ""} ${muted ? "is-muted" : ""}`} role="button" tabIndex={0}
+    aria-label={`${node.type} ${node.label}, ${graphConnectionDepthLabel(node.hop)}`} onClick={onSelect} onKeyDown={activate}>
     <title>{`${node.type}: ${node.label}`}</title>
-    {node.type === "condition" ? <ellipse cx={x} cy={y} rx="76" ry="34"/> :
-      node.type === "intervention" ? <polygon points={`${x - 68},${y} ${x - 45},${y - 32} ${x + 45},${y - 32} ${x + 68},${y} ${x + 45},${y + 32} ${x - 45},${y + 32}`}/> :
-      node.type === "sponsor" ? <rect x={x - 72} y={y - 30} width="144" height="60" rx="30"/> :
-      <rect x={x - 76} y={y - 34} width="152" height="68" rx="12"/>}
-    <text className="graphrag-node-type" x={x} y={y - 8} textAnchor="middle">{typeLabel}</text>
-    <text className="graphrag-node-label" x={x} y={y + 12} textAnchor="middle">{label}</text>
+    {node.type === "condition" ? <ellipse cx={x} cy={y} rx={nodeWidth / 2} ry={nodeHeight / 2}/> :
+      node.type === "intervention" ? <polygon points={`${x - nodeWidth / 2},${y} ${x - nodeWidth / 2 + 24},${y - nodeHeight / 2} ${x + nodeWidth / 2 - 24},${y - nodeHeight / 2} ${x + nodeWidth / 2},${y} ${x + nodeWidth / 2 - 24},${y + nodeHeight / 2} ${x - nodeWidth / 2 + 24},${y + nodeHeight / 2}`}/> :
+      node.type === "sponsor" ? <rect x={x - nodeWidth / 2} y={y - nodeHeight / 2} width={nodeWidth} height={nodeHeight} rx={nodeHeight / 2}/> :
+      <rect x={x - nodeWidth / 2} y={y - nodeHeight / 2} width={nodeWidth} height={nodeHeight} rx="12"/>}
+    <text className="graphrag-node-type" x={x} y={y - 13} textAnchor="middle">{typeLabel}</text>
+    <text className="graphrag-node-label" x={x} y={labelLines.length > 1 ? y + 5 : y + 10} textAnchor="middle">
+      {labelLines.map((line, index) => <tspan key={`${node.id}-label-${index}`} x={x} dy={index === 0 ? 0 : 14}>{line}</tspan>)}
+    </text>
   </g>;
 }
 
@@ -2134,10 +2676,10 @@ function GraphView({ result }: { result: UiResult }) {
   }, [seedNct, analysedMatches, related?.anchor_trial, related?.max_hops, related?.per_hop_limit, related?.limit, related?.validation, evidence?.trial]);
 
   const selectedEntity = selectedEntityId ? connectionEntities.find((entity) => entity.id === selectedEntityId) : undefined;
-  const categories: Array<{ relationship: GraphRelationship; label: string; description: string }> = [
-    { relationship: "HAS_CONDITION", label: "Conditions", description: "Clinical conditions shared with analysed studies" },
-    { relationship: "HAS_INTERVENTION", label: "Interventions", description: "Treatments or interventions shared with analysed studies" },
-    { relationship: "SPONSORED_BY", label: "Sponsors", description: "Organizations shared with analysed studies" },
+  const categories: Array<{ relationship: GraphRelationship; label: string; sharedSingular: string; sharedPlural: string; description: string }> = [
+    { relationship: "HAS_CONDITION", label: "Conditions", sharedSingular: "shared condition", sharedPlural: "shared conditions", description: "Clinical conditions shared with analysed studies" },
+    { relationship: "HAS_INTERVENTION", label: "Interventions", sharedSingular: "shared intervention", sharedPlural: "shared interventions", description: "Treatments or interventions shared with analysed studies" },
+    { relationship: "SPONSORED_BY", label: "Sponsors", sharedSingular: "shared sponsor", sharedPlural: "shared sponsors", description: "Organizations shared with analysed studies" },
   ];
 
   useEffect(() => {
@@ -2192,6 +2734,20 @@ function GraphView({ result }: { result: UiResult }) {
     return () => document.body.classList.remove("graph-workspace-open");
   }, [frameMaximized]);
 
+  useEffect(() => {
+    if (!advancedOpen) return;
+    const sourceGraph = expandedScope ? graph : analysisGraph;
+    if (!sourceGraph) return;
+    const sourceEdges = sourceGraph.edges ?? [];
+    const filteredEdges = relationshipFilter === "ALL" ? sourceEdges : sourceEdges.filter((edge) => edge.relationship === relationshipFilter);
+    const visibleIds = new Set<string>([sourceGraph.seed_node ?? ""]);
+    filteredEdges.forEach((edge) => { visibleIds.add(edge.source); visibleIds.add(edge.target); });
+    const sourceNodes = sourceGraph.nodes ?? [];
+    const filteredNodes = relationshipFilter === "ALL" ? sourceNodes : sourceNodes.filter((node) => visibleIds.has(node.id));
+    const fitted = buildGraphLayout(filteredNodes, maxHops);
+    setViewport({ x: 0, y: 0, width: fitted.width, height: fitted.height });
+  }, [advancedOpen, expandedScope, graph, analysisGraph, relationshipFilter, maxHops]);
+
   if (!seedNct) return <div className="workspace-view"><div className="empty-inline"><Network size={24}/><strong>No study is available for connection exploration</strong><p>Run a study-specific investigation or open a study first.</p></div></div>;
 
   const activeGraph = expandedScope ? graph : analysisGraph;
@@ -2206,6 +2762,26 @@ function GraphView({ result }: { result: UiResult }) {
   const selectedEdge = selection?.kind === "edge" ? allEdges.find((edge) => edge.id === selection.id) : undefined;
   const edgeSource = selectedEdge ? allNodes.find((node) => node.id === selectedEdge.source) : undefined;
   const edgeTarget = selectedEdge ? allNodes.find((node) => node.id === selectedEdge.target) : undefined;
+  const connectionRows = buildGraphConnectionRows(visibleNodes, visibleEdges, activeGraph?.seed_node ?? "");
+  const visibleRelatedStudyCount = connectionRows.length;
+  const visibleSharedEntityCount = visibleNodes.filter((node) => node.type !== "trial").length;
+  const visibleEvidenceLinkCount = visibleEdges.length;
+  const selectedConnection = selection?.kind === "node" ? connectionRows.find((row) => row.studyId === selection.id) : undefined;
+  const selectedPath = (() => {
+    if (!selection || !activeGraph?.seed_node) return null;
+    const targetId = selection.kind === "node" ? selection.id : selectedEdge?.source;
+    if (!targetId || targetId === activeGraph.seed_node) return null;
+    const path = findGraphPath(activeGraph.seed_node, targetId, visibleEdges);
+    if (!path) return null;
+    const nodeIds = new Set(path.nodeIds);
+    const edgeIds = new Set(path.edgeIds);
+    if (selection.kind === "edge" && selectedEdge) {
+      nodeIds.add(selectedEdge.source);
+      nodeIds.add(selectedEdge.target);
+      edgeIds.add(selectedEdge.id);
+    }
+    return { nodeIds, edgeIds };
+  })();
 
   const filters: Array<{ value: GraphFilter; label: string }> = [
     { value: "ALL", label: "All" },
@@ -2259,14 +2835,13 @@ function GraphView({ result }: { result: UiResult }) {
     if (dragState?.pointerId === event.pointerId) setDragState(null);
   };
 
-  const nodeById = new Map<string, GraphViewNode>(allNodes.map((node) => [node.id, node] as [string, GraphViewNode]));
   const visibleStudyNodes = visibleNodes.filter((node) => node.type === "trial");
   const graphText = [
     `Study of interest: ${seedNct}`,
     `Display scope: ${expandedScope ? "Expanded bounded network" : "Analysed set"}`,
-    `Studies shown: ${activeGraph?.match_count ?? 0}`,
+    `Connected studies shown: ${connectionRows.length}`,
     "",
-    ...visibleEdges.map((edge) => `${nodeById.get(edge.source)?.label ?? edge.source} — ${graphRelationshipLabel(edge.relationship)} → ${nodeById.get(edge.target)?.label ?? edge.target} (step ${edge.hop})`),
+    ...connectionRows.map((row) => `${row.studyLabel} — ${row.whyConnected} — ${row.sharedEntity} — ${row.depthLabel}`),
   ].join("\n");
 
   const copyGraph = async () => {
@@ -2326,21 +2901,21 @@ function GraphView({ result }: { result: UiResult }) {
     image.src = url;
   };
   const downloadStudiesCsv = () => {
-    const rows = ["nct_id,title,status,phase,search_step", ...visibleStudyNodes.map((node) => [
+    const rows = ["nct_id,title,status,phase,connection_depth", ...visibleStudyNodes.map((node) => [
       node.label,
       node.metadata?.brief_title ?? "",
       node.metadata?.overall_status ?? "",
       node.metadata?.phase ?? "",
-      node.hop,
+      graphConnectionDepthLabel(node.hop),
     ].map(csvCell).join(","))];
     downloadClientFile(`${seedNct}-trialiq-visible-studies.csv`, rows.join("\r\n"), "text/csv;charset=utf-8");
   };
   const downloadConnectionsCsv = () => {
-    const rows = ["source,connection_type,target,search_step", ...visibleEdges.map((edge) => [
-      nodeById.get(edge.source)?.label ?? edge.source,
-      graphRelationshipLabel(edge.relationship),
-      nodeById.get(edge.target)?.label ?? edge.target,
-      edge.hop,
+    const rows = ["connected_study,why_connected,shared_entity,connection_depth", ...connectionRows.map((row) => [
+      row.studyLabel,
+      row.whyConnected,
+      row.sharedEntity,
+      row.depthLabel,
     ].map(csvCell).join(","))];
     downloadClientFile(`${seedNct}-trialiq-visible-connections.csv`, rows.join("\r\n"), "text/csv;charset=utf-8");
   };
@@ -2370,15 +2945,15 @@ function GraphView({ result }: { result: UiResult }) {
           const analysedStudyIds = new Set(entities.flatMap((entity) => entity.matches.map((match) => match.nct_id)));
           return <article className={`connection-category-card category-${category.relationship.toLowerCase()}`} key={category.relationship}>
             <div className="connection-category-head">
-              <div><span>{category.label}</span><strong>{entities.length} connection reason{entities.length === 1 ? "" : "s"}</strong></div>
-              <small>{analysedStudyIds.size} stud{analysedStudyIds.size === 1 ? "y" : "ies"} in this answer</small>
+              <div><span>{category.label}</span><strong>{entities.length} {entities.length === 1 ? category.sharedSingular : category.sharedPlural}</strong></div>
+              <small>{analysedStudyIds.size} analysed stud{analysedStudyIds.size === 1 ? "y" : "ies"}</small>
             </div>
             <p>{category.description}</p>
             {entities.length ? <div className="connection-entity-list">{entities.map((entity) => <button type="button" className={`connection-entity-button ${selectedEntityId === entity.id ? "active" : ""}`} key={entity.id} onClick={() => { setSelectedEntityId(entity.id); setVisibleEntityStudies(5); }}>
-              <span className="connection-entity-copy"><strong>{entity.label}</strong><small>{entity.matches.length} of {analysedMatches.length} studies in this answer</small></span>
-              <span className="connection-entity-reach">{entity.fanout !== null ? <><strong>{entity.fanout.toLocaleString()}</strong><small>connected studies</small></> : <><strong>Source-backed</strong><small>shared factor</small></>}</span>
+              <span className="connection-entity-copy"><strong>{entity.label}</strong><small>{entity.matches.length} analysed stud{entity.matches.length === 1 ? "y" : "ies"}</small></span>
+              <span className="connection-entity-reach">{entity.fanout !== null ? <><strong>{entity.fanout.toLocaleString()}</strong><small>studies in loaded graph</small></> : <><strong>Source-backed</strong><small>shared entity</small></>}</span>
               <ArrowRight size={15}/>
-            </button>)}</div> : <div className="connection-category-empty">No {category.label.toLowerCase()} connect the studies in this answer.</div>}
+            </button>)}</div> : <div className="connection-category-empty">No {category.sharedPlural} connect the analysed studies.</div>}
           </article>;
         })}
       </div>
@@ -2386,14 +2961,14 @@ function GraphView({ result }: { result: UiResult }) {
 
     {selectedEntity && <section className="connection-branch-panel" aria-live="polite">
       <div className="connection-branch-heading">
-        <div><span>{graphRelationshipLabel(selectedEntity.relationship)} branch</span><h3>{selectedEntity.label}</h3><p>{selectedEntity.matches.length} stud{selectedEntity.matches.length === 1 ? "y in this answer is" : "ies in this answer are"} connected through this reason{selectedEntity.fanout !== null ? ` · ${selectedEntity.fanout.toLocaleString()} studies share it in the loaded graph` : ""}.</p></div>
+        <div><span>{graphRelationshipLabel(selectedEntity.relationship)} branch</span><h3>{selectedEntity.label}</h3><p>{selectedEntity.matches.length} analysed stud{selectedEntity.matches.length === 1 ? "y is" : "ies are"} connected through this {graphRelationshipLabel(selectedEntity.relationship).toLowerCase()}.{selectedEntity.fanout !== null ? ` ${selectedEntity.fanout.toLocaleString()} studies in the loaded graph share it.` : ""}</p></div>
         <button type="button" className="secondary-button connection-broader-action" onClick={() => openBroaderGraph(selectedEntity.relationship)}>View wider network <ArrowRight size={15}/></button>
       </div>
       <div className="connection-branch-study-grid">
         {selectedEntity.matches.slice(0, visibleEntityStudies).map((match) => <article className="connection-branch-study" key={`${selectedEntity.id}-${match.nct_id}`}>
           <div><span>Related study</span><strong>{match.nct_id}</strong></div>
           <p>{text(match.trial?.brief_title, "Title unavailable")}</p>
-          <div className="connection-branch-meta"><span>{text(match.trial?.overall_status, "Status unavailable")}</span><span>{match.discovery_hop === 1 ? "Direct connection" : `Connection level ${match.discovery_hop}`}</span></div>
+          <div className="connection-branch-meta"><span className={`clinical-status ${clinicalStatusClass(typeof match.trial?.overall_status === "string" ? match.trial.overall_status : null)}`}>{humanStatusLabel(typeof match.trial?.overall_status === "string" ? match.trial.overall_status : null)}</span><span className="connection-depth-badge">{match.discovery_hop === 1 ? "Direct connection" : `Connection level ${match.discovery_hop}`}</span></div>
         </article>)}
       </div>
       {visibleEntityStudies < selectedEntity.matches.length && <button type="button" className="connection-show-more" onClick={() => setVisibleEntityStudies((current) => Math.min(current + 5, selectedEntity.matches.length))}>Show {Math.min(5, selectedEntity.matches.length - visibleEntityStudies)} more analysed studies <ChevronDown size={15}/></button>}
@@ -2412,26 +2987,30 @@ function GraphView({ result }: { result: UiResult }) {
       <header className="graph-result-frame-header">
         <div className="graph-result-frame-title">
           <Network size={18}/>
-          <div><span>Network explorer</span><strong>{seedNct}</strong><small>{activeGraph ? `${activeGraph.match_count ?? 0} studies · ${allEdges.length} connections` : "Preparing graph"}</small></div>
+          <div><span>Network explorer</span><strong>{seedNct}</strong><small>{activeGraph ? `${visibleRelatedStudyCount} related studies · ${visibleSharedEntityCount} shared entities · ${visibleEvidenceLinkCount} evidence links` : "Preparing graph"}</small></div>
         </div>
         <div className="graph-result-frame-actions" aria-label="Graph workspace actions">
-          <div className="graph-view-switch" role="group" aria-label="Graph result view">
+          <div className="graph-action-group"><span>View</span><div className="graph-view-switch" role="group" aria-label="Graph result view">
             <button type="button" className={displayMode === "network" ? "active" : ""} onClick={() => setDisplayMode("network")}><Network size={14}/> Network</button>
             <button type="button" className={displayMode === "table" ? "active" : ""} onClick={() => setDisplayMode("table")}><Table2 size={14}/> Table</button>
+          </div></div>
+          <div className="graph-action-group"><span>Actions</span><div className="graph-action-cluster">
+            <button type="button" className="graph-icon-action graph-labeled-action" onClick={() => void copyGraph()} title="Copy visible graph as text" aria-label="Copy visible graph as text"><Copy size={15}/><span>Copy</span></button>
+            <details className="graph-download-menu" open={downloadOpen} onToggle={(event) => setDownloadOpen(event.currentTarget.open)}>
+              <summary className="graph-icon-action graph-labeled-action" title="Download graph" aria-label="Download graph"><Download size={15}/><span>Download</span></summary>
+              <div className="graph-download-popover">
+                <button type="button" disabled={displayMode !== "network"} onClick={downloadPng}>PNG image</button>
+                <button type="button" disabled={displayMode !== "network"} onClick={downloadSvg}>SVG image</button>
+                <button type="button" onClick={downloadStudiesCsv}>CSV · visible studies</button>
+                <button type="button" onClick={downloadConnectionsCsv}>CSV · visible connections</button>
+                <button type="button" onClick={downloadGraphJson}>JSON · graph data</button>
+              </div>
+            </details>
+          </div></div>
+          <div className="graph-frame-actions">
+            <button type="button" className="graph-icon-action" onClick={() => setFrameCollapsed((current) => !current)} title={frameCollapsed ? "Restore graph" : "Minimize graph"} aria-label={frameCollapsed ? "Restore graph" : "Minimize graph"}>{frameCollapsed ? <ChevronDown size={16}/> : <ChevronUp size={16}/>}</button>
+            <button type="button" className="graph-icon-action" onClick={() => { setFrameMaximized((current) => !current); setFrameCollapsed(false); }} title={frameMaximized ? "Restore graph size" : "Maximize graph"} aria-label={frameMaximized ? "Restore graph size" : "Maximize graph"}>{frameMaximized ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}</button>
           </div>
-          <button type="button" className="graph-icon-action" onClick={() => void copyGraph()} title="Copy visible graph as text" aria-label="Copy visible graph as text"><Copy size={15}/></button>
-          <details className="graph-download-menu" open={downloadOpen} onToggle={(event) => setDownloadOpen(event.currentTarget.open)}>
-            <summary className="graph-icon-action" title="Download graph" aria-label="Download graph"><Download size={15}/></summary>
-            <div className="graph-download-popover">
-              <button type="button" disabled={displayMode !== "network"} onClick={downloadPng}>PNG image</button>
-              <button type="button" disabled={displayMode !== "network"} onClick={downloadSvg}>SVG image</button>
-              <button type="button" onClick={downloadStudiesCsv}>CSV · visible studies</button>
-              <button type="button" onClick={downloadConnectionsCsv}>CSV · visible connections</button>
-              <button type="button" onClick={downloadGraphJson}>JSON · graph data</button>
-            </div>
-          </details>
-          <button type="button" className="graph-icon-action" onClick={() => setFrameCollapsed((current) => !current)} title={frameCollapsed ? "Restore graph" : "Minimize graph"} aria-label={frameCollapsed ? "Restore graph" : "Minimize graph"}>{frameCollapsed ? <ChevronDown size={16}/> : <ChevronUp size={16}/>}</button>
-          <button type="button" className="graph-icon-action" onClick={() => { setFrameMaximized((current) => !current); setFrameCollapsed(false); }} title={frameMaximized ? "Restore graph size" : "Maximize graph"} aria-label={frameMaximized ? "Restore graph size" : "Maximize graph"}>{frameMaximized ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}</button>
         </div>
         {copyStatus && <span className="graph-copy-status" role="status">{copyStatus}</span>}
       </header>
@@ -2439,22 +3018,23 @@ function GraphView({ result }: { result: UiResult }) {
       {!frameCollapsed && <>
         <div className="graph-result-frame-controls">
           <div className="graphrag-toolbar compact-graph-toolbar">
-            <div className="graph-control-group"><span>Connection type</span><div className="graph-filter-row">{filters.map((filter) =>
+            <div className="graph-control-group"><span>Filter</span><div className="graph-filter-row">{filters.map((filter) =>
               <button type="button" key={filter.value} className={relationshipFilter === filter.value ? "active" : ""} onClick={() => { setRelationshipFilter(filter.value); setSelection(null); }}>{filter.label}</button>)}</div></div>
-            <div className="graph-control-group"><span>Display scope</span><div className="graph-depth-switch" role="group" aria-label="Graph display scope">
+            <div className="graph-control-group"><span>Scope</span><div className="graph-depth-switch" role="group" aria-label="Graph display scope">
               <button type="button" className={!expandedScope ? "active" : ""} onClick={() => {
                 setExpandedScope(false); setSelection(null); setGraphError("");
                 const analysedLayout = buildGraphLayout(analysisGraph.nodes ?? [], reportedDepth);
                 setViewport({ x: 0, y: 0, width: analysedLayout.width, height: analysedLayout.height });
-              }}>Analysed set</button>
+              }}>Analysed</button>
               <button type="button" className={expandedScope ? "active" : ""} onClick={() => { setExpandedScope(true); setSelection(null); }}>Expanded</button>
             </div></div>
-            <div className="graph-control-group"><span>Connection depth</span>{expandedScope ? <div className="graph-depth-switch" role="group" aria-label="Graph traversal depth">
+            <div className="graph-control-group"><span>Depth</span>{expandedScope ? <div className="graph-depth-switch" role="group" aria-label="Graph traversal depth">
               <button type="button" className={maxHops === 1 ? "active" : ""} onClick={() => setMaxHops(1)}>Direct</button>
-              <button type="button" className={maxHops === 2 ? "active" : ""} onClick={() => setMaxHops(2)}>2 steps</button>
-            </div> : <div className="graph-scope-static">{(related?.max_hops ?? 1) === 1 ? "Direct · current answer" : `${related?.max_hops ?? 1} steps · current answer`}</div>}</div>
+              <button type="button" className={maxHops === 2 ? "active" : ""} onClick={() => setMaxHops(2)}>2-step</button>
+            </div> : <div className="graph-scope-static">{(related?.max_hops ?? 1) === 1 ? "Direct connection" : "2-step connection"}</div>}</div>
           </div>
           {displayMode === "network" && <div className="graph-navigation-toolbar" aria-label="Graph navigation controls">
+            <strong>Explore</strong>
             <button type="button" onClick={fitGraph} title="Fit graph to view"><RotateCcw size={14}/> Fit</button>
             <button type="button" onClick={() => zoomGraph(.8)} title="Zoom in"><ZoomIn size={15}/></button>
             <button type="button" onClick={() => zoomGraph(1.25)} title="Zoom out"><ZoomOut size={15}/></button>
@@ -2468,52 +3048,69 @@ function GraphView({ result }: { result: UiResult }) {
 
         {activeGraph && !(expandedScope && loadingGraph) && <>
           <div className="graph-metrics compact-graph-metrics">
-            <Metric label="Studies shown" value={String(activeGraph.match_count ?? 0)}/>
-            <Metric label="Items" value={String(allNodes.length)}/>
-            <Metric label="Connections" value={String(allEdges.length)}/>
-            <Metric label="Depth" value={(activeGraph.max_hops ?? maxHops) === 1 ? "Direct" : `${activeGraph.max_hops ?? maxHops} steps`}/>
+            <Metric label="Studies shown" value={String(visibleRelatedStudyCount)}/>
+            <Metric label="Shared entities" value={String(visibleSharedEntityCount)}/>
+            <Metric label="Evidence links" value={String(visibleEvidenceLinkCount)}/>
+            <Metric label="Depth" value={(activeGraph.max_hops ?? maxHops) === 1 ? "Direct connection" : "2-step connection"}/>
           </div>
-          <p className="graph-scope-copy">{expandedScope ? "Expanded view is intentionally bounded and does not represent every connected study in the loaded graph." : `This node-link view is built from the exact ${analysedMatches.length} related studies analysed in the current answer.`}</p>
+          <p className="graph-scope-copy">{expandedScope ? "Counts reflect the currently visible bounded network after the active relationship filter." : `Counts reflect the visible subset of the ${analysedMatches.length} related studies analysed in the current answer.`}</p>
 
-          {displayMode === "network" ? <div className="graphrag-canvas-shell bounded-canvas-shell neo4j-style-canvas" aria-label="Interactive related-trial graph">
-            {visibleNodes.length ? <svg ref={graphSvgRef} className={`graphrag-canvas ${dragState ? "is-panning" : ""}`} viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`} role="img" aria-label={`Study connections for ${seedNct}`}
-              onPointerDown={handleGraphPointerDown} onPointerMove={handleGraphPointerMove} onPointerUp={handleGraphPointerEnd} onPointerCancel={handleGraphPointerEnd}
-              onWheel={(event) => { event.preventDefault(); zoomGraph(event.deltaY < 0 ? .9 : 1.1); }}>
-              <g className="graphrag-edges">{visibleEdges.map((edge) => {
-                const source = layout.positions.get(edge.source); const target = layout.positions.get(edge.target);
-                if (!source || !target) return null;
-                const selected = selection?.kind === "edge" && selection.id === edge.id;
-                const midX = (source.x + target.x) / 2; const midY = (source.y + target.y) / 2;
-                return <g key={edge.id}>
-                  <line className={`graphrag-edge relationship-${edge.relationship.toLowerCase()} ${selected ? "selected" : ""}`} x1={source.x} y1={source.y} x2={target.x} y2={target.y}/>
-                  <line className="graphrag-edge-hitbox" x1={source.x} y1={source.y} x2={target.x} y2={target.y} role="button" tabIndex={0}
-                    aria-label={`${edge.relationship} graph relationship`} onClick={() => setSelection({ kind: "edge", id: edge.id })}
-                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelection({ kind: "edge", id: edge.id }); } }}><title>{edge.relationship}</title></line>
-                  <text className="graphrag-edge-label" x={midX} y={midY - 7} textAnchor="middle">{edge.relationship}</text>
-                </g>;
-              })}</g>
-              <g className="graphrag-nodes">{visibleNodes.map((node) => {
-                const position = layout.positions.get(node.id); if (!position) return null;
-                return <GraphNodeShape key={node.id} node={node} x={position.x} y={position.y} selected={selection?.kind === "node" && selection.id === node.id} onSelect={() => setSelection({ kind: "node", id: node.id })}/>;
-              })}</g>
-            </svg> : <div className="graph-empty"><Network size={24}/><strong>No graph nodes available</strong><span>The selected trial could not be represented as a bounded graph.</span></div>}
-          </div> : <div className="graph-table-view" role="region" aria-label="Visible graph connections as a table">
-            <table><thead><tr><th>Study / source</th><th>Connection</th><th>Shared factor</th><th>Step</th></tr></thead><tbody>
-              {visibleEdges.map((edge) => <tr key={`table-${edge.id}`}><td>{nodeById.get(edge.source)?.label ?? edge.source}</td><td>{graphRelationshipLabel(edge.relationship)}</td><td>{nodeById.get(edge.target)?.label ?? edge.target}</td><td>{edge.hop}</td></tr>)}
-            </tbody></table>
-            {!visibleEdges.length && <div className="graph-table-empty">No visible connections for the current filter.</div>}
-          </div>}
+          <div className={`graph-workspace-body ${(selectedNode || selectedEdge) ? "has-selection" : ""}`}>
+            <div className="graph-workspace-primary">
+              {displayMode === "network" ? <div className="graphrag-canvas-shell bounded-canvas-shell neo4j-style-canvas" aria-label="Interactive related-trial graph">
+                {visibleEdges.length && connectionRows.length ? <svg ref={graphSvgRef} className={`graphrag-canvas ${dragState ? "is-panning" : ""}`} viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`} role="img" aria-label={`Study connections for ${seedNct}`}
+                  onPointerDown={handleGraphPointerDown} onPointerMove={handleGraphPointerMove} onPointerUp={handleGraphPointerEnd} onPointerCancel={handleGraphPointerEnd}
+                  onWheel={(event) => { event.preventDefault(); zoomGraph(event.deltaY < 0 ? .9 : 1.1); }}>
+                  <g className="graphrag-edges">{visibleEdges.map((edge) => {
+                    const source = layout.positions.get(edge.source); const target = layout.positions.get(edge.target);
+                    if (!source || !target) return null;
+                    const selected = selection?.kind === "edge" && selection.id === edge.id;
+                    const onPath = selectedPath?.edgeIds.has(edge.id) ?? false;
+                    const muted = Boolean(selectedPath && !onPath);
+                    const midX = (source.x + target.x) / 2; const midY = (source.y + target.y) / 2;
+                    return <g key={edge.id}>
+                      <line className={`graphrag-edge relationship-${edge.relationship.toLowerCase()} ${selected ? "selected" : ""} ${onPath ? "is-path" : ""} ${muted ? "is-muted" : ""}`} x1={source.x} y1={source.y} x2={target.x} y2={target.y}/>
+                      <line className="graphrag-edge-hitbox" x1={source.x} y1={source.y} x2={target.x} y2={target.y} role="button" tabIndex={0}
+                        aria-label={`${graphRelationshipLabel(edge.relationship)} connection`} onClick={() => setSelection({ kind: "edge", id: edge.id })}
+                        onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelection({ kind: "edge", id: edge.id }); } }}><title>{graphRelationshipLabel(edge.relationship)}</title></line>
+                      {(selected || onPath) && <text className={`graphrag-edge-label ${onPath ? "is-path" : ""}`} x={midX} y={midY - 7} textAnchor="middle">{graphRelationshipLabel(edge.relationship)}</text>}
+                    </g>;
+                  })}</g>
+                  <g className="graphrag-nodes">{visibleNodes.map((node) => {
+                    const position = layout.positions.get(node.id); if (!position) return null;
+                    const onPath = selectedPath?.nodeIds.has(node.id) ?? false;
+                    const muted = Boolean(selectedPath && !onPath);
+                    return <GraphNodeShape key={node.id} node={node} x={position.x} y={position.y} selected={selection?.kind === "node" && selection.id === node.id} onPath={onPath} muted={muted} onSelect={() => setSelection({ kind: "node", id: node.id })}/>;
+                  })}</g>
+                </svg> : <div className="graph-empty"><Network size={24}/><strong>No visible connections for this filter</strong><span>The selected relationship type has no study-to-entity evidence in the current graph scope.</span></div>}
+              </div> : <div className="graph-table-view" role="region" aria-label="Visible study connections as a table">
+                <table><thead><tr><th>Connected study</th><th>Why connected</th><th>Shared entity</th><th>Connection depth</th></tr></thead><tbody>
+                  {connectionRows.map((row) => <tr key={`table-${row.studyId}`} className={selection?.kind === "node" && selection.id === row.studyId ? "is-selected" : ""} role="button" tabIndex={0}
+                    onClick={() => setSelection({ kind: "node", id: row.studyId })}
+                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelection({ kind: "node", id: row.studyId }); } }}>
+                    <td><strong>{row.studyLabel}</strong></td><td>{row.whyConnected}</td><td>{row.sharedEntity}</td><td>{row.depthLabel}</td>
+                  </tr>)}
+                </tbody></table>
+                {!connectionRows.length && <div className="graph-table-empty">No connected studies for the current filter.</div>}
+              </div>}
+            </div>
 
-          {(selectedNode || selectedEdge) && <aside className="graph-selection-drawer" aria-live="polite">
-            <div className="graph-inspector-heading"><span>Selection details</span><strong>{selectedEdge ? selectedEdge.relationship : selectedNode ? selectedNode.label : "Selection"}</strong></div>
-            {selectedNode && <div className="graph-inspector-body">
-              <InspectorRow label="Node type" value={collectionLabel(selectedNode.type)}/><InspectorRow label="Search step" value={String(selectedNode.hop)}/>
-              {selectedNode.type === "trial" && <><InspectorRow label="Title" value={text(selectedNode.metadata?.brief_title)}/><InspectorRow label="Status" value={text(selectedNode.metadata?.overall_status)}/><InspectorRow label="Phase" value={text(selectedNode.metadata?.phase)}/></>}
-              {selectedNode.type !== "trial" && <><InspectorRow label="Name" value={selectedNode.label}/><InspectorRow label="Loaded study reach" value={selectedNode.metadata?.loaded_trial_count ? Number(selectedNode.metadata.loaded_trial_count).toLocaleString() : "Not reported"}/></>}
-            </div>}
-            {selectedEdge && <div className="graph-inspector-body"><InspectorRow label="Connection type" value={graphRelationshipLabel(selectedEdge.relationship)}/><InspectorRow label="Search step" value={String(selectedEdge.hop)}/><InspectorRow label="Trial" value={edgeSource?.label ?? selectedEdge.source}/><InspectorRow label="Shared entity" value={edgeTarget?.label ?? selectedEdge.target}/></div>}
-            <button type="button" className="comparison-close-button graph-selection-close" onClick={() => setSelection(null)}>Close details</button>
-          </aside>}
+            {(selectedNode || selectedEdge) && <aside className="graph-selection-drawer" aria-live="polite">
+              <div className="graph-inspector-heading"><span>Connection details</span><strong>{selectedConnection?.studyLabel ?? (selectedEdge ? graphRelationshipLabel(selectedEdge.relationship) : selectedNode?.label ?? "Selection")}</strong></div>
+              {selectedConnection && <div className="graph-inspector-body">
+                <InspectorRow label="Connected study" value={selectedConnection.studyLabel}/><InspectorRow label="Why connected" value={selectedConnection.whyConnected}/>
+                <InspectorRow label="Shared entity" value={selectedConnection.sharedEntity}/><InspectorRow label="Connection depth" value={selectedConnection.depthLabel}/>
+                <InspectorRow label="Title" value={text(selectedNode?.metadata?.brief_title)}/><InspectorRow label="Status" value={text(selectedNode?.metadata?.overall_status)}/>
+              </div>}
+              {selectedNode && !selectedConnection && <div className="graph-inspector-body">
+                <InspectorRow label="Item type" value={selectedNode.hop === 0 ? "Study of interest" : collectionLabel(selectedNode.type)}/><InspectorRow label="Connection depth" value={graphConnectionDepthLabel(selectedNode.hop)}/>
+                {selectedNode.type === "trial" && <><InspectorRow label="Title" value={text(selectedNode.metadata?.brief_title)}/><InspectorRow label="Status" value={text(selectedNode.metadata?.overall_status)}/><InspectorRow label="Phase" value={text(selectedNode.metadata?.phase)}/></>}
+                {selectedNode.type !== "trial" && <><InspectorRow label="Name" value={selectedNode.label}/><InspectorRow label="Loaded study reach" value={selectedNode.metadata?.loaded_trial_count ? Number(selectedNode.metadata.loaded_trial_count).toLocaleString() : "Not reported"}/></>}
+              </div>}
+              {selectedEdge && <div className="graph-inspector-body"><InspectorRow label="Connection type" value={graphRelationshipLabel(selectedEdge.relationship)}/><InspectorRow label="Connection depth" value={graphConnectionDepthLabel(selectedEdge.hop)}/><InspectorRow label="Study" value={edgeSource?.label ?? selectedEdge.source}/><InspectorRow label="Shared entity" value={edgeTarget?.label ?? selectedEdge.target}/></div>}
+              <button type="button" className="comparison-close-button graph-selection-close" onClick={() => setSelection(null)}>Close details</button>
+            </aside>}
+          </div>
           {(activeGraph.match_count ?? 0) === 0 && <div className="graph-zero-state"><Network size={18}/><div><strong>No related studies were found within the current search distance.</strong><p>The study of interest ({seedNct}) is still shown because the connection search completed successfully.</p></div></div>}
           {!!activeGraph.limitations?.length && <div className="graph-limitations"><strong>Graph notes</strong><ul>{activeGraph.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
         </>}
