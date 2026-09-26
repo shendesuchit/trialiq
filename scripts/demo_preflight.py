@@ -94,7 +94,57 @@ def run_preflight(base_url: str, *, timeout: float = 30.0) -> None:
         payload={"question": CANONICAL_DEMO_QUESTION, "limit": 20},
         timeout=max(timeout, 60.0),
     )
-    _require(run.get("status") == "SUCCESS", f"Agent run status was {run.get('status')!r}.")
+
+    paused_for_review = run.get("status") == "REVIEW_REQUIRED"
+    if paused_for_review:
+        human_review = run.get("human_review")
+        _require(isinstance(human_review, dict), "Review-required response has no checkpoint payload.")
+        candidate_count = human_review.get("candidate_count")
+        _require(
+            isinstance(candidate_count, int) and candidate_count > 6,
+            "Human-review checkpoint did not contain more than six candidates.",
+        )
+        suggested = human_review.get("suggested_nct_ids")
+        candidates = human_review.get("candidates")
+        _require(isinstance(candidates, list) and candidates, "Human-review checkpoint has no candidates.")
+        selected = [item for item in (suggested or []) if isinstance(item, str)]
+        if not selected:
+            selected = [
+                item.get("nct_id")
+                for item in candidates[:6]
+                if isinstance(item, dict) and isinstance(item.get("nct_id"), str)
+            ]
+        _require(bool(selected), "Human-review checkpoint did not yield a selectable study set.")
+
+        run = _request_json(
+            f"{base_url}/api/v1/query/agent/continue",
+            method="POST",
+            payload={
+                "run_id": run.get("run_id"),
+                "selection": {
+                    "checkpoint_id": human_review.get("checkpoint_id"),
+                    "mode": "SELECTED",
+                    "selected_nct_ids": selected,
+                },
+            },
+            timeout=max(timeout, 60.0),
+        )
+        _require(
+            run.get("status") == "SUCCESS",
+            f"Agent continuation status was {run.get('status')!r}.",
+        )
+        decision = run.get("human_review_decision")
+        _require(isinstance(decision, dict), "Resumed agent response has no human-review decision.")
+        _require(
+            decision.get("selected_candidate_count") == len(selected),
+            "Resumed agent response did not preserve the investigator selection count.",
+        )
+        print(
+            f"[PASS] HITL checkpoint: {candidate_count} discovered, "
+            f"{len(selected)} investigator-approved"
+        )
+    else:
+        _require(run.get("status") == "SUCCESS", f"Agent run status was {run.get('status')!r}.")
 
     retrieval = run.get("retrieval")
     _require(isinstance(retrieval, dict), "Agent response did not include retrieval metadata.")
@@ -133,8 +183,10 @@ def run_preflight(base_url: str, *, timeout: float = 30.0) -> None:
     stages = [item.get("stage") for item in trace if isinstance(item, dict)]
     for expected in ("intent", "retrieval", "metrics", "validation", "synthesis"):
         _require(expected in stages, f"Execution trace is missing the '{expected}' stage.")
+    if paused_for_review:
+        _require("human_review" in stages, "Execution trace is missing the human-review stage.")
 
-    print(f"[PASS] Agentic demo path: {len(matches)} related trial(s), MCP retrieval, deterministic metrics, validated structured synthesis")
+    print(f"[PASS] Agentic demo path: {len(matches)} analysed trial(s), MCP retrieval, deterministic metrics, validated structured synthesis")
     print("[SUCCESS] TrialIQ demo preflight passed.")
 
 
