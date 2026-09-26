@@ -1,0 +1,57 @@
+flowchart TB
+    subgraph Frontend[frontend/]
+      UI[Investigator Console]
+    end
+
+    subgraph API[src/trialiq/api]
+      A[FastAPI app + routes]
+      RH[Runtime readiness]
+    end
+
+    subgraph Agents[src/trialiq/agents]
+      SUP[Supervisor]
+      RET[Retrieval]
+      HITL[Human review]
+      VAL[Validation]
+      SYN[Synthesis]
+      PDF[Report PDF]
+    end
+
+    subgraph Services[src/trialiq/services]
+      GQS[Graph query service]
+      MET[Related-trial metrics]
+      CAT[Trial catalog]
+      LIN[Lineage]
+      VERIFY[Source verification]
+    end
+
+    subgraph MCP[src/trialiq/mcp]
+      TOOLS[FastMCP TrialIQ tools]
+    end
+
+    subgraph LLM[src/trialiq/llm]
+      LSVC[Provider abstraction]
+    end
+
+    subgraph ETL[src/trialiq/etl]
+      LOAD[AACT extraction + canonical graph load]
+    end
+
+    UI --> A
+    A --> SUP
+    SUP --> RET
+    RET --> TOOLS
+    TOOLS --> GQS
+    SUP --> HITL
+    SUP --> VAL
+    SUP --> SYN
+    SYN --> LSVC
+    SUP --> MET
+    A --> PDF
+    A --> CAT
+    A --> LIN
+    GQS --> VERIFY
+    LOAD --> NEO[(Neo4j)]
+    GQS --> NEO
+    LOAD --> PG[(AACT PostgreSQL)]
+    VERIFY --> PG

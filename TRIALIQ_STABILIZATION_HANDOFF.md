@@ -1,176 +1,118 @@
-# TrialIQ Backend Stabilization Handoff
+# TrialIQ Stable-Demo Handoff
 
-**Status:** Stabilization changes implemented; live Neo4j integration verification remains pending.
+**Status:** Stable Demo / Technical Preview baseline reached.
 
-## Product direction
+**Release-gate checkpoint:** Batch 21 + Batch 21.1 memory-safe qualification hotfix.
 
-TrialIQ is an evidence-grounded clinical-trial intelligence backend. Its intended flow is:
+**Verified:** 2026-09-26.
 
-```text
-AACT data → transformed graph artifact → Neo4j load/reconciliation
-→ isolated graph query → validated evidence → FastAPI / MCP response
-```
+## What is stable
 
-The backend provides deterministic trial overviews by NCT ID through Neo4j, a validation and answer-formatting layer, a FastAPI endpoint, and an MCP tool.
+TrialIQ now has a verified end-to-end local/demo workflow covering:
 
-## Changes completed
+- deterministic trial lookup;
+- governed guided investigations;
+- MCP-mediated graph retrieval;
+- bounded Condition / Intervention / Sponsor related-study traversal;
+- deterministic comparison metrics;
+- human review when a related-study set exceeds six candidates;
+- reuse of the existing retrieval on HITL resume;
+- deterministic evidence/grounding validation;
+- structured grounded synthesis;
+- progressive Investigator UI: Answer / Studies / Connections / Evidence;
+- deterministic PDF report generation;
+- full-graph scenario qualification for Basic / Intermediate / Advanced / HITL demo levels.
 
-### Relationship reconciliation is now endpoint-aware
+## Protected architecture
 
-`src/trialiq/etl/neo4j_load.py` was updated to correct and harden graph reconciliation.
+The following rules are architectural guardrails, not optional implementation details:
 
-Previously, its relationship query began at `Trial` nodes:
+1. MCP is the required transport boundary for the guided graph workflow.
+2. There is no silent MCP -> direct Neo4j fallback.
+3. TrialIQ does not execute arbitrary LLM-generated Cypher.
+4. Related-study traversal is bounded and allowlisted.
+5. Related-study graph dimensions are Condition, Intervention and Sponsor unless a deliberate future migration changes the model everywhere.
+6. Quantitative date/duration/enrollment comparisons are deterministic backend calculations.
+7. Validation is deterministic; the normal guided workflow does not spend a third LLM call on validation.
+8. A normal guided investigation uses two logical LLM stages: structured intent and structured grounded synthesis.
+9. When a broad result set requires human review, resume reuses the interpreted request and retrieved evidence instead of repeating retrieval.
+10. The browser does not query Neo4j or emit Cypher.
 
-```text
-Trial → Entity
-```
+## Current verified release gate
 
-That contradicted the actual graph-query convention:
-
-```text
-Entity → Trial
-```
-
-Reconciliation now:
-
-- matches every approved relationship as `(source)-[r]->(target)`;
-- scopes a relationship when either endpoint belongs to the requested NCT IDs;
-- compares relationship type and deterministic relationship key;
-- compares the actual source and target node `source_key` values;
-- reports missing and unexpected endpoint identities independently.
-
-This closes the gap where a relationship could have the expected key but connect the wrong nodes.
-
-### Regression coverage for endpoint integrity
-
-`tests/etl/test_neo4j_idempotency.py` was updated to use the intended `Condition → Trial` fixture direction and now contains a regression test for a reversed relationship that has the correct relationship key.
-
-The test confirms reconciliation fails if endpoints are wrong even when the key is valid.
-
-### Unit and integration tests are separated
-
-Added `pyproject.toml` and `tests/conftest.py`.
-
-- The repository now declares the `src/` package layout to pytest.
-- Live-service tests use an `integration` marker.
-- Integration tests are skipped by default.
-- Set `TRIALIQ_RUN_INTEGRATION=1` to run them against Neo4j.
-
-The following test modules are integration tests:
-
-- `tests/chains/test_cypher_qa_integration.py`
-- `tests/etl/test_neo4j_idempotency.py`
-- `tests/test_connection.py`
-
-### API readiness and CORS configuration
-
-`src/trialiq/api/app.py` now exposes:
-
-- `GET /health`: API process is alive.
-- `GET /ready`: API can connect to configured Neo4j; returns HTTP 503 when it cannot.
-
-`src/trialiq/config/settings.py` and `.env.example` now support a comma-separated `CORS_ORIGINS` variable instead of hard-coded frontend origins.
-
-### Local database and CI setup
-
-Added:
-
-- `compose.yaml`: local Neo4j service.
-- `.github/workflows/ci.yml`: GitHub Actions unit and integration jobs.
-
-The CI integration job starts Neo4j, enables `TRIALIQ_RUN_INTEGRATION=1`, and runs the complete suite.
-
-### Documentation
-
-`README.md` now documents editable installation, non-integration test execution, starting local Neo4j, and full integration execution.
-
-## Files created
-
-| File | Purpose |
-| --- | --- |
-| `pyproject.toml` | Package metadata and pytest configuration |
-| `tests/conftest.py` | Opt-in integration-test behavior |
-| `compose.yaml` | Local Neo4j development service |
-| `.github/workflows/ci.yml` | Unit and Neo4j-backed CI jobs |
-| `TRIALIQ_STABILIZATION_HANDOFF.md` | This handoff document |
-
-## Files changed
-
-| File | Change |
-| --- | --- |
-| `src/trialiq/etl/neo4j_load.py` | Correct relationship direction/scope and validate endpoints |
-| `tests/etl/test_neo4j_idempotency.py` | Align relationship fixture direction and add endpoint regression test |
-| `tests/chains/test_cypher_qa_integration.py` | Mark as integration test |
-| `tests/test_connection.py` | Mark as integration test |
-| `src/trialiq/api/app.py` | Add Neo4j readiness endpoint and configurable CORS |
-| `src/trialiq/config/settings.py` | Add and parse `CORS_ORIGINS` |
-| `.env.example` | Document `CORS_ORIGINS` |
-| `README.md` | Add local verification instructions |
-
-## Verification completed
-
-Focused backend verification passed:
+The Batch 21/21.1 release gate completed with:
 
 ```text
-50 passed
+332 passed, 12 skipped, 2 warnings
+Frontend production build: PASS
+API health: PASS
+API readiness: PASS
+Neo4j readiness: PASS
+MCP readiness: PASS
+LLM readiness: PASS
+Live agentic preflight: PASS
+Stable demo qualification: PASS
 ```
 
-This included validation, service, deterministic graph-query, LLM abstraction, and MCP tests.
-
-The full live Neo4j suite was not rerun in the Codex environment because Neo4j at `localhost:7687` was unavailable during verification. This is now an explicit integration dependency instead of a blocker for routine unit checks.
-
-## Current state
-
-### Complete
-
-- AACT extraction and graph transformation foundation
-- Neo4j schema, loading, and idempotency work
-- Trial-isolation graph retrieval coverage
-- Deterministic answer service and evidence formatting
-- FastAPI trial-overview endpoint and MCP tool
-- Relationship endpoint reconciliation hardening
-- Reproducible pytest configuration and integration-test separation
-- Local Neo4j Compose configuration and CI workflow
-- Neo4j readiness endpoint and environment-configured CORS
-
-### Immediate next action
-
-Run the full suite against Neo4j:
-
-```powershell
-docker compose up -d neo4j
-$env:TRIALIQ_RUN_INTEGRATION = "1"
-.venv\Scripts\python.exe -m pytest -q
-```
-
-Before this, ensure the values in `.env` match the Neo4j credentials used by `compose.yaml`.
-
-## Remaining work
-
-1. Verify the entire suite against a running Neo4j instance.
-2. Perform an end-to-end acceptance run:
-   - load a representative transformed AACT artifact;
-   - reconcile the loaded graph;
-   - query a trial by NCT ID;
-   - validate FastAPI output;
-   - validate MCP output.
-3. Add explicit FastAPI/MCP contract tests for valid, invalid, missing, not-found, graph-validation-failure, and Neo4j-outage cases.
-4. Add production operational hardening:
-   - structured logging and metrics;
-   - defined timeout/retry policy;
-   - ingestion audit reports and partial-failure recovery.
-5. Decide deployment-specific security before implementation:
-   - authentication/authorization;
-   - rate limiting;
-   - final production CORS allow-list;
-   - secret-management approach.
-
-## Important graph-model rule
-
-Unless the graph model is deliberately migrated everywhere, preserve this relationship convention:
+The qualification outputs are generated under:
 
 ```text
-Entity -[RELATIONSHIP]-> Trial
+data/profiles/batch21_stable_demo_qualification.json
+data/profiles/batch21_stable_demo_scenarios.json
+data/profiles/batch21_stable_demo_scenarios.txt
 ```
 
-Do not restore the former reconciliation assumption of `Trial → Entity`.
+Those files should be regenerated against the active full graph before a demo or after a material data refresh.
+
+## Data architecture
+
+The authoritative data flow is:
+
+```text
+AACT PostgreSQL / ctgov
+  -> TrialIQ extraction + normalization
+  -> canonical graph load + reconciliation
+  -> Neo4j
+  -> fixed/parameterized read paths
+  -> deterministic evidence and metrics
+  -> validation
+  -> investigator-facing response
+```
+
+Historical full-load qualification used 602,891 Trial nodes. That count is a checkpoint result, not a permanent invariant; a later AACT snapshot can legitimately contain a different study count.
+
+## Human review contract
+
+The default automatic-analysis threshold is six candidates.
+
+- `candidate_count <= 6`: guided workflow continues automatically.
+- `candidate_count > 6`: `/api/v1/query/agent` returns `REVIEW_REQUIRED`.
+- the investigator can analyse selected studies or all discovered studies;
+- resume occurs through `/api/v1/query/agent/continue`;
+- the selected evidence set drives downstream validation and synthesis;
+- the final result records the human-review decision.
+
+Paused investigations are currently stored in a bounded in-process store. This is appropriate for the current local/demo runtime but is not durable multi-instance workflow persistence.
+
+## UI contract
+
+The result workspace should preserve this progression:
+
+```text
+Answer -> Studies -> Connections -> Evidence -> Prepare report -> PDF
+```
+
+The Connections view keeps the investigator-facing relationship explanation primary and the technical graph explorer progressive/optional. Styling may evolve, but functionality should not be replaced by a visually inspired redesign without a deliberate product decision.
+
+## Immediate maintenance priorities
+
+1. Keep the Stable Demo release gate green.
+2. Regenerate the four stable demo scenarios after meaningful graph/data changes.
+3. Keep generated/cache/build outputs out of Git.
+4. Keep README and numbered docs aligned with the stable checkpoint.
+5. Resolve frontend `package.json` / `package-lock.json` dependency-manifest drift before declaring a long-term reproducible release tag.
+6. Treat `docs/16-reproducibility-checklist.md` as the gate for a clean-machine rebuild.
+
+## Documentation source of truth
+
+Start with `docs/00-index.md`. The numbered documents are the maintained documentation set. Batch-specific documents remain historical implementation evidence.

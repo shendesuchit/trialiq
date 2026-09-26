@@ -1,0 +1,15 @@
+flowchart LR
+    CTG[ClinicalTrials.gov data] --> AACT[(AACT PostgreSQL snapshot\nctgov schema)]
+    AACT --> EXTRACT[TrialIQ deterministic extraction]
+    EXTRACT --> NORMALIZE[Normalization + canonical identity]
+    NORMALIZE --> LOAD[Canonical Neo4j batched load]
+    LOAD --> RECON[Scope reconciliation + provenance checks]
+    RECON --> NEO[(TrialIQ Neo4j graph)]
+
+    NEO --> QUERY[Bounded TrialIQ graph query]
+    QUERY --> EVIDENCE[Graph evidence + source IDs]
+    EVIDENCE --> METRICS[Deterministic metrics]
+    METRICS --> VALIDATE[Evidence / grounding validation]
+    AACT -. field-level source verification .-> VALIDATE
+    VALIDATE --> RESULT[Grounded TrialIQ result]
+    RESULT --> UI[Investigator Console]

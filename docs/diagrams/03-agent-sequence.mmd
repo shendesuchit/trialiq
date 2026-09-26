@@ -1,0 +1,40 @@
+sequenceDiagram
+    actor Investigator
+    participant UI as TrialIQ Investigator Console
+    participant API as FastAPI /query/agent
+    participant LLM as TrialIQ LLM Service
+    participant SUP as SupervisorAgent
+    participant MCP as FastMCPRetrievalClient
+    participant TOOL as TrialIQ MCP find_related_trials
+    participant NEO as Neo4j
+    participant VAL as ValidationAgent
+
+    Investigator->>UI: Ask guided related-study question
+    UI->>API: POST /api/v1/query/agent
+    API->>LLM: Request ExtractedQueryIntent
+    LLM-->>API: Typed intent
+    API->>SUP: Run AgentRequest
+    SUP->>MCP: Retrieve supported evidence
+    MCP->>TOOL: find_related_trials(...)
+    TOOL->>NEO: Fixed bounded read query
+    NEO-->>TOOL: Related-trial paths + study fields
+    TOOL-->>MCP: Typed RelatedTrialSearchResponse
+    MCP-->>SUP: RetrievalResult (transport=mcp)
+    SUP->>SUP: Compute deterministic metrics trace
+
+    alt candidate_count > 6
+        SUP-->>API: REVIEW_REQUIRED + HumanReviewCheckpoint
+        API-->>UI: Candidate review payload
+        Investigator->>UI: Analyse selected / Analyse all
+        UI->>API: POST /api/v1/query/agent/continue
+        API->>SUP: Resume stored run
+        SUP->>SUP: Apply selection to existing retrieval
+    end
+
+    SUP->>VAL: Validate selected evidence
+    VAL-->>SUP: can_synthesize + warnings/errors
+    SUP->>LLM: Request StructuredSynthesis
+    LLM-->>SUP: Typed grounded synthesis
+    SUP-->>API: AgentRunResult
+    API-->>UI: Answer + studies + connections + evidence + trace
+    UI-->>Investigator: Grounded investigation result

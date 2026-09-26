@@ -1,0 +1,19 @@
+flowchart TD
+    SELECT[Select TrialIQ study of interest] --> QUESTION[Enter question]
+    QUESTION --> MODE{Direct or Guided}
+    MODE -->|Direct| RUN[Run TrialIQ query]
+    MODE -->|Guided| DISCOVERY[Agent discovery]
+    DISCOVERY --> BROAD{More than 6 candidates?}
+    BROAD -->|Yes| HITL[Choose studies to investigate\nUse suggested / Analyse selected / Analyse all]
+    BROAD -->|No| RUN
+    HITL --> RUN
+
+    RUN --> ANSWER[Answer tab\nGrounded conclusion]
+    ANSWER --> STUDIES[Studies tab\nfilters + timeline + comparison]
+    ANSWER --> CONNECTIONS[Connections tab\nCondition / Intervention / Sponsor explanation]
+    ANSWER --> EVIDENCE[Evidence tab\nsource + validation]
+    STUDIES --> CONNECTIONS
+    CONNECTIONS --> TECH[Optional technical graph explorer\nNetwork / Table]
+    CONNECTIONS --> EVIDENCE
+    EVIDENCE --> REPORT[Prepare report]
+    REPORT --> PDF[Download deterministic PDF]
