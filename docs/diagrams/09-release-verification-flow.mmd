@@ -1,0 +1,13 @@
+flowchart TD
+    SOURCE[TrialIQ checkout] --> IMPORT[1. Verify TrialIQ import source]
+    IMPORT --> TARGETED[2. Targeted HITL/report/qualification contracts]
+    TARGETED --> PYTEST[3. Full pytest regression]
+    PYTEST --> BUILD[4. Frontend production build]
+    BUILD --> API[5. Ensure live API]
+    API --> PREFLIGHT[6. API + Neo4j + MCP + LLM preflight]
+    PREFLIGHT --> QUALIFY[7. Qualify Basic / Intermediate / Advanced / HITL]
+    QUALIFY --> HYGIENE[8. Repository hygiene inspection]
+    HYGIENE --> AUTO[Automated stable-demo gate passed]
+    AUTO --> MANUAL[Manual UI smoke\n4 qualified questions + PDF]
+    MANUAL --> REPRO[Clean-clone dependency/install check]
+    REPRO --> TAG[Stable demo release tag]

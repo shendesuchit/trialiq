@@ -1,0 +1,51 @@
+classDiagram
+    class Trial {
+      +nct_id
+      +brief_title
+      +overall_status
+      +phase
+      +study_type
+      +start_date
+      +completion_date
+      +enrollment
+    }
+    class Condition {
+      +canonical_key
+      +normalized_name
+      +loaded_trial_count
+    }
+    class Intervention {
+      +canonical_key
+      +normalized_name
+      +intervention_type
+      +loaded_trial_count
+    }
+    class Sponsor {
+      +canonical_key
+      +normalized_name
+      +loaded_trial_count
+    }
+    class Facility {
+      +evidence_context
+    }
+    class Design {
+      +evidence_context
+    }
+    class Eligibility {
+      +evidence_context
+    }
+
+    Condition --> Trial : HAS_CONDITION
+    Intervention --> Trial : HAS_INTERVENTION
+    Sponsor --> Trial : SPONSORED_BY
+    Facility --> Trial : evidence / lineage
+    Design --> Trial : evidence / lineage
+    Eligibility --> Trial : evidence / lineage
+
+    note for Trial "TrialIQ canonical clinical-trial node"
+    note for Condition "Allowlisted related-study discovery dimension"
+    note for Intervention "Allowlisted related-study discovery dimension"
+    note for Sponsor "Allowlisted related-study discovery dimension"
+    note for Facility "Not automatically used for related-study traversal"
+    note for Design "Not automatically used for related-study traversal"
+    note for Eligibility "Not automatically used for related-study traversal"

@@ -1,0 +1,20 @@
+flowchart TD
+    Q[Investigator question in TrialIQ] --> MODE{Selected workflow mode}
+    MODE -->|Direct| DIRECT[Deterministic overview/query service]
+    DIRECT --> EVIDENCE[Loaded source-backed evidence]
+    EVIDENCE --> DANSWER[Deterministic grounded answer]
+
+    MODE -->|Guided| INTENT[LLM call 1\nExtractedQueryIntent]
+    INTENT --> SUP[TrialIQ Supervisor]
+    SUP --> MCP[FastMCP governed retrieval]
+    MCP --> GRAPH[Bounded Neo4j evidence]
+    GRAPH --> METRICS[Deterministic metrics]
+    METRICS --> WIDTH{More than 6 candidates?}
+    WIDTH -->|No| VALIDATE[Deterministic validation]
+    WIDTH -->|Yes| HUMAN[Investigator selects evidence set]
+    HUMAN --> VALIDATE
+    VALIDATE --> SYNTH[LLM call 2\nStructuredSynthesis]
+    SYNTH --> GANSWER[Grounded guided answer]
+
+    DANSWER --> UI[Answer / Studies / Connections / Evidence]
+    GANSWER --> UI

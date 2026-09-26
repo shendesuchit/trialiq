@@ -1,0 +1,22 @@
+stateDiagram-v2
+    [*] --> Question: TrialIQ guided question
+    Question --> Intent: LLM structured intent
+    Intent --> Retrieval: MCP bounded graph retrieval
+    Retrieval --> Metrics: deterministic comparisons
+    Metrics --> CandidateGate
+
+    state CandidateGate <<choice>>
+    CandidateGate --> Validation: candidate_count <= 6
+    CandidateGate --> ReviewRequired: candidate_count > 6
+
+    ReviewRequired --> Selected: Investigator chooses Analyse selected
+    ReviewRequired --> All: Investigator chooses Analyse all
+    Selected --> ReuseRetrieval: apply selected NCT IDs
+    All --> ReuseRetrieval: keep all discovered candidates
+    ReuseRetrieval --> Validation: no repeated intent/retrieval
+
+    Validation --> Synthesis: evidence can synthesize
+    Validation --> TerminalEvidenceState: evidence cannot synthesize
+    Synthesis --> Result: LLM structured grounded synthesis
+    TerminalEvidenceState --> Result
+    Result --> [*]

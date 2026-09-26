@@ -1,18 +1,55 @@
-# TrialIQ canonical demo questions
+# TrialIQ Demo Questions
 
-## Primary end-to-end agentic demonstration
+## Current source of truth
 
-> Find completed trials connected to NCT03416088 through its conditions or interventions. Explain exactly why they are connected, compare their completion timelines and enrollment, and show the evidence supporting each conclusion.
+The stable demo no longer depends on a permanently hard-coded seed NCT ID. The Batch 21 qualifier selects and verifies a four-level scenario ladder against the currently loaded full graph.
 
-Expected path: LLM intent extraction → supervisor → MCP retrieval → bounded Neo4j traversal → deterministic related-trial metrics → deterministic grounding validation → structured LLM synthesis → evidence/graph/execution UI.
+After running:
 
-## Focused verification questions
+```powershell
+.\scripts\run_batch21_stable_demo_verification.ps1
+```
 
-1. **Connection evidence** — Find trials connected to NCT03416088 through its conditions or interventions and explain exactly which canonical entities connect each trial.
-2. **Timeline comparison** — Find completed trials connected to NCT03416088 through its conditions or interventions and compare their completion dates with the anchor trial.
-3. **Enrollment comparison** — Find completed trials connected to NCT03416088 through its conditions or interventions and compare their enrollment with the anchor trial.
-4. **Bounded deterministic fallback** — Find completed trials connected to NCT03416088 through its conditions or interventions. This wording is intentionally supported by the bounded fallback used when all LLM providers are unavailable during intent extraction.
+use the generated presenter summary:
 
-## Presenter checks before a demo
+```text
+data/profiles/batch21_stable_demo_scenarios.txt
+```
 
-Run `scripts\run_demo_preflight.bat F:\trialiq` after the API, MCP server, Neo4j, and configured LLM provider are running. The preflight requires API/Neo4j/MCP/LLM readiness, MCP transport, related-trial evidence, stable entity IDs, deterministic metrics, both logical LLM stages for the primary query, structured synthesis, and the expected execution trace stages.
+and machine-readable metadata:
+
+```text
+data/profiles/batch21_stable_demo_scenarios.json
+```
+
+## Demo ladder
+
+### Basic
+
+Purpose: direct evidence-grounded lookup without unnecessary agentic complexity.
+
+### Intermediate
+
+Purpose: a small 2–6 study related-trial result through a clear supported relationship dimension, with no HITL needed.
+
+### Advanced
+
+Purpose: a small result set with strong deterministic comparison coverage across completion/duration/enrollment dimensions.
+
+### HITL
+
+Purpose: more than six discovered candidates, causing the investigator-review checkpoint before detailed analysis.
+
+## Presenter checks
+
+Before presenting:
+
+1. run all four generated questions in the UI;
+2. confirm Answer / Studies / Connections / Evidence;
+3. confirm the HITL scenario pauses and resumes;
+4. confirm deterministic comparison values appear where source data is available;
+5. download and open one PDF report.
+
+## Historical examples
+
+Older TrialIQ development used specific seeds such as NCT03416088 for GraphRAG demonstrations. Those examples are useful history, but the generated Batch 21 stable scenarios are authoritative for the active dataset.

@@ -1,0 +1,25 @@
+flowchart LR
+    INVESTIGATOR[TrialIQ Investigator] --> UI[Investigator Console\nReact + Vite]
+    UI --> API[TrialIQ FastAPI]
+
+    API -->|Direct mode| DIRECT[Deterministic TrialIQ services]
+    API -->|Guided mode| INTENT[LLM structured intent\nExtractedQueryIntent]
+    INTENT --> SUP[TrialIQ SupervisorAgent]
+    SUP --> MCPCLIENT[FastMCPRetrievalClient]
+    MCPCLIENT --> MCP[TrialIQ FastMCP tools]
+    MCP --> GRAPHQ[Graph query service\nfixed/parameterized Cypher]
+    GRAPHQ --> NEO[(Neo4j canonical graph)]
+
+    NEO --> METRICS[Deterministic related-trial metrics]
+    METRICS --> REVIEW{Candidate count > 6?}
+    REVIEW -->|Yes| HITL[Investigator HITL selection]
+    REVIEW -->|No| VALIDATION[Deterministic validation]
+    HITL --> VALIDATION
+    VALIDATION --> SYNTH[LLM structured grounded synthesis\nStructuredSynthesis]
+    SYNTH --> API
+    DIRECT --> API
+    API --> UI
+
+    AACT[(AACT PostgreSQL\nctgov)] --> ETL[TrialIQ canonical ETL\nload + reconciliation]
+    ETL --> NEO
+    AACT -. source verification .-> VALIDATION

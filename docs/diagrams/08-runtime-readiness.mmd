@@ -1,0 +1,16 @@
+flowchart LR
+    START[TrialIQ API startup] --> LLM[One-time LLM provider preflight]
+    START --> HEALTH[/GET /health/]
+    HEALTH --> ALIVE[API process alive]
+
+    READY[/GET /ready/] --> NEO[Neo4j readiness]
+    READY --> MCP[MCP transport readiness]
+    READY --> LLMREADY[Configured LLM readiness]
+
+    NEO --> SUMMARY[RuntimeReadiness]
+    MCP --> SUMMARY
+    LLMREADY --> SUMMARY
+
+    SUMMARY --> PREFLIGHT[demo_preflight.py]
+    PREFLIGHT --> AGENT[Live guided TrialIQ probe]
+    AGENT --> PASS[API + Neo4j + MCP + LLM + retrieval + metrics + validation + synthesis]

@@ -1,0 +1,17 @@
+flowchart LR
+    INVESTIGATOR((Clinical-trial investigator))
+    MAINTAINER((TrialIQ maintainer))
+
+    INVESTIGATOR --> UC1[Look up a study of interest]
+    INVESTIGATOR --> UC2[Ask a guided related-study question]
+    INVESTIGATOR --> UC3[Review broad candidate set]
+    INVESTIGATOR --> UC4[Compare study timing / duration / enrollment]
+    INVESTIGATOR --> UC5[Understand Condition / Intervention / Sponsor connections]
+    INVESTIGATOR --> UC6[Inspect source evidence and validation]
+    INVESTIGATOR --> UC7[Prepare and download a PDF report]
+
+    MAINTAINER --> UC8[Restore AACT source]
+    MAINTAINER --> UC9[Build/reconcile canonical Neo4j graph]
+    MAINTAINER --> UC10[Run TrialIQ readiness and release gate]
+    MAINTAINER --> UC11[Qualify stable demo scenarios]
+    MAINTAINER --> UC12[Recover TrialIQ from a clean machine]
